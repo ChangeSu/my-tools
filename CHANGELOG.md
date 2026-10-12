@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-STY-NAV-LIGHT-FLAT-ADMIN -->
+### [2026-10-12] - 导航站改版为浅色扁平企业后台风（纯样式，用户提供配色规范）
+- app.css 按规范全量重写：页面底 #f7f7f8、顶栏/分组/卡片面 #ffffff、主文本 #222、次要文本 #666、弱化文本 #999、边框/分割线 #e5e5e5、卡片 hover 浅灰 #f5f5f6（仿表格行）；主操作按钮（关闭）黑底白字，次要按钮（新标签页打开）白底灰边黑字；紧凑控件（7px 内边距、6px 圆角、13px 字号）、搜索+排序横向排列；无渐变无阴影，保留 sticky 头部、focus-visible、<640px 堆叠。
+- index.html 仅 favicon data URI 由蓝色改为 #222 配色；结构、app.js、服务端零改动。
+- 自测：浏览器计算样式断言 bodyBg=rgb(247,247,248)、header=#fff、关闭按钮 #222 底/#fff 字、打开链接 #fff 底/#e5e5e5 边/#222 字、路径文本 #666；功能回归（过滤、iframe 预览开关、ESC、最近使用区、无重复渲染）全绿。
+- 已知限制：内嵌浏览器视图隐藏导致截图不可用，视觉以计算样式断言为准；配色规范中的状态标签绿 #27a243 已入变量但导航页当前无状态标签场景。
+
 <!-- CHANGELOG-ID: CHG-STY-NAV-DARK-THEME -->
 ### [2026-10-12] - 导航站深色现代风改版（纯样式）
 - app.css 全量重写：深色主题（#16181d 底、#6c8cff 强调色、CSS 变量统一管理）、sticky 头部、胶囊搜索框带 focus 光圈、分组卡片化容器、卡片 hover 上浮微交互、focus-visible 可达性、<640px 响应式堆叠；全局 `[hidden]{display:none!important}` 保障过滤显隐语义。
