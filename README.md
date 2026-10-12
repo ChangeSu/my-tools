@@ -20,7 +20,33 @@ node server.js
 | `PORT` | `3000` | 服务端口 |
 | `TOOLS_DIR` | `./tools` | 工具扫描目录 |
 
-Docker 完整部署方案见 issue #5 交付后的文档。
+## Docker 部署
+
+一键部署（默认挂载当前目录的 `tools/`、暴露 3000 端口）：
+
+```bash
+docker compose up -d --build
+# 浏览器访问 http://localhost:3000
+```
+
+### 自定义挂载目录与端口
+
+通过环境变量覆盖（bash 示例，PowerShell 用 `$env:PORT="3001"`）：
+
+```bash
+TOOLS_DIR=/d/my-html-tools PORT=3001 docker compose up -d
+```
+
+- `TOOLS_DIR`：宿主机上的工具目录（绝对路径最稳妥），容器内挂载到 `/data/tools`
+- `PORT`：宿主机暴露端口，容器内部固定 3000
+
+### 添加新工具
+
+无需重启或重建：
+
+1. 把任意 `.html` 文件放入挂载的工具目录，刷新导航页即出现；
+2. 想要分类的话，在目录下一层建子目录（如 `文本处理/xxx.html`，子目录名即分类名）；
+3. 文件名/分类支持中文；更深一层的子目录也会扫描，分类仍取第一层目录名。
 
 ## 文档
 

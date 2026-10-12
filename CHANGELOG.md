@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-T05-DOCKER-DELIVERY -->
+### [2026-10-12] - T05 Docker 部署交付 (#5)
+- 新增 docker-compose.yml：build 当前目录、`${PORT:-3000}` 宿主端口、`${TOOLS_DIR:-./tools}` 绑定挂载到 /data/tools、`restart: unless-stopped`、基于 node -e 的 healthcheck。相对挂载路径存在 compose 解析歧义，README 建议绝对路径。
+- README 补齐部署三步说明（部署 / 挂载自定义（TOOLS_DIR、PORT 环境变量覆盖） / 添加新工具免重启）。
+- 自测：`docker compose up -d --build` 后浏览器导航页正常渲染中文分类与工具、中文搜索过滤命中；运行中向挂载目录投放 `文本处理/端到端验证.html` 免重启即出现在 API 与页面并可打开（200）；`docker restart` 后服务自动恢复、healthcheck 转 healthy；验证后清理临时容器与探针文件。
+- 已知限制：`docker compose down && up` 重建路径未单独重复验证（与 restart 等价于镜像不变、挂载不变场景）。
+
 <!-- CHANGELOG-ID: CHG-T02-CATEGORY-SEARCH -->
 ### [2026-10-12] - T02 目录分类分组 + 搜索过滤 (#2)
 - 导航页新增搜索框，按工具名/分类即时过滤（大小写不敏感、支持中文）；过滤后无可见卡片的分类整组隐藏，全部无匹配时显示"没有匹配的工具"提示，清空恢复全量分组。
