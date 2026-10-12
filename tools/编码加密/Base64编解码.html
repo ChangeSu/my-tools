@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base64 编解码</title>
+  <style>
+    body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; max-width: 720px; margin: 32px auto; padding: 0 16px; color: #2b2f36; }
+    h1 { font-size: 20px; }
+    textarea { width: 100%; height: 140px; font-family: Consolas, monospace; font-size: 13px; padding: 10px; border: 1px solid #d5d9e0; border-radius: 8px; }
+    .row { margin: 12px 0; display: flex; gap: 8px; }
+    button { padding: 8px 18px; font-size: 14px; border: 1px solid #d5d9e0; border-radius: 8px; background: #fff; cursor: pointer; }
+    button:hover { background: #f0f3fa; }
+    #error { color: #c0392b; font-size: 13px; min-height: 18px; margin: 6px 0; }
+    label { display: block; margin: 12px 0 4px; font-size: 14px; color: #4a5160; }
+  </style>
+</head>
+<body>
+  <h1>Base64 编解码</h1>
+  <label for="plain">明文（支持中文，UTF-8）</label>
+  <textarea id="plain" placeholder="输入明文…"></textarea>
+  <div class="row">
+    <button id="encode">编码 ↓</button>
+    <button id="decode">↑ 解码</button>
+  </div>
+  <label for="encoded">Base64</label>
+  <textarea id="encoded" placeholder="输入 Base64…"></textarea>
+  <div id="error"></div>
+  <script>
+    const plain = document.getElementById('plain');
+    const encoded = document.getElementById('encoded');
+    const error = document.getElementById('error');
+
+    function toBase64Utf8(text) {
+      const bytes = new TextEncoder().encode(text);
+      let bin = '';
+      bytes.forEach(b => bin += String.fromCharCode(b));
+      return btoa(bin);
+    }
+
+    function fromBase64Utf8(b64) {
+      const bin = atob(b64.trim());
+      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    document.getElementById('encode').addEventListener('click', () => {
+      error.textContent = '';
+      if (plain.value === '') return;
+      encoded.value = toBase64Utf8(plain.value);
+    });
+
+    document.getElementById('decode').addEventListener('click', () => {
+      error.textContent = '';
+      const input = encoded.value.trim();
+      if (input === '') return;
+      try {
+        plain.value = fromBase64Utf8(input);
+      } catch (err) {
+        error.textContent = 'Base64 解码失败：输入不是合法的 Base64 字符串';
+      }
+    });
+  </script>
+</body>
+</html>

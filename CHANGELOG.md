@@ -1,5 +1,11 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-T06-SAMPLE-TOOLS -->
+### [2026-10-12] - T06 补充示例工具 (#6)
+- 新增单文件零依赖示例工具：`tools/格式转换/JSON格式化.html`（格式化/压缩/缩进选择/复制，非法输入报错）、`tools/编码加密/Base64编解码.html`（UTF-8 中英文编解码往返，非法 Base64 报错）。
+- 自测：API 返回 编码加密/格式转换/未分类 三个分类；浏览器内 JSON 工具格式化输出缩进正确、`{bad json!!` 触发解析错误提示、压缩去空白正确；Base64 工具 "你好 hello" 编码为 `5L2g5aW9IGhlbGxv` 且解码往返一致、非法输入显示错误。
+- 已知限制：无。
+
 <!-- CHANGELOG-ID: CHG-T05-DOCKER-DELIVERY -->
 ### [2026-10-12] - T05 Docker 部署交付 (#5)
 - 新增 docker-compose.yml：build 当前目录、`${PORT:-3000}` 宿主端口、`${TOOLS_DIR:-./tools}` 绑定挂载到 /data/tools、`restart: unless-stopped`、基于 node -e 的 healthcheck。相对挂载路径存在 compose 解析歧义，README 建议绝对路径。

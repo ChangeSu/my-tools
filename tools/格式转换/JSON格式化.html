@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON 格式化</title>
+  <style>
+    body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; color: #2b2f36; }
+    h1 { font-size: 20px; }
+    textarea { width: 100%; height: 200px; font-family: Consolas, monospace; font-size: 13px; padding: 10px; border: 1px solid #d5d9e0; border-radius: 8px; }
+    .row { margin: 12px 0; display: flex; gap: 8px; align-items: center; }
+    button { padding: 8px 18px; font-size: 14px; border: 1px solid #d5d9e0; border-radius: 8px; background: #fff; cursor: pointer; }
+    button:hover { background: #f0f3fa; }
+    select { padding: 7px 10px; border: 1px solid #d5d9e0; border-radius: 8px; font-size: 13px; }
+    #error { color: #c0392b; font-size: 13px; min-height: 18px; margin-top: 6px; }
+    #stats { color: #7b828d; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>JSON 格式化</h1>
+  <textarea id="input" placeholder='粘贴 JSON，例如 {"a":1,"b":[2,3]}'></textarea>
+  <div class="row">
+    <button id="format">格式化</button>
+    <button id="minify">压缩</button>
+    <label>缩进
+      <select id="indent">
+        <option value="2" selected>2 空格</option>
+        <option value="4">4 空格</option>
+        <option value="tab">Tab</option>
+      </select>
+    </label>
+    <button id="copy">复制结果</button>
+  </div>
+  <div id="error"></div>
+  <textarea id="output" readonly placeholder="结果"></textarea>
+  <div id="stats"></div>
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const error = document.getElementById('error');
+    const stats = document.getElementById('stats');
+    const indentSel = document.getElementById('indent');
+
+    function indentValue() {
+      return indentSel.value === 'tab' ? '\t' : Number(indentSel.value);
+    }
+
+    function run(minify) {
+      error.textContent = '';
+      stats.textContent = '';
+      let parsed;
+      try {
+        parsed = JSON.parse(input.value);
+      } catch (err) {
+        error.textContent = 'JSON 解析失败：' + err.message;
+        output.value = '';
+        return;
+      }
+      output.value = minify ? JSON.stringify(parsed) : JSON.stringify(parsed, null, indentValue());
+      const type = Array.isArray(parsed) ? 'array' : typeof parsed;
+      stats.textContent = '解析成功，根类型: ' + type + '，输出长度: ' + output.value.length;
+    }
+
+    document.getElementById('format').addEventListener('click', () => run(false));
+    document.getElementById('minify').addEventListener('click', () => run(true));
+    document.getElementById('copy').addEventListener('click', async () => {
+      if (!output.value) return;
+      try {
+        await navigator.clipboard.writeText(output.value);
+        stats.textContent = '已复制到剪贴板';
+      } catch (err) {
+        stats.textContent = '复制失败，请手动选择文本复制';
+      }
+    });
+  </script>
+</body>
+</html>
