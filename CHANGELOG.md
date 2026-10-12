@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-STY-NAV-DARK-THEME -->
+### [2026-10-12] - 导航站深色现代风改版（纯样式）
+- app.css 全量重写：深色主题（#16181d 底、#6c8cff 强调色、CSS 变量统一管理）、sticky 头部、胶囊搜索框带 focus 光圈、分组卡片化容器、卡片 hover 上浮微交互、focus-visible 可达性、<640px 响应式堆叠；全局 `[hidden]{display:none!important}` 保障过滤显隐语义。
+- index.html 仅新增装饰：内联 SVG Logo/放大镜/关闭叉号、data URI favicon；app.js 与服务端零改动。
+- 自测：干净页面单次断言全绿——3 工具 3 分组渲染、base64 过滤命中 1 卡片 1 分组、无匹配提示、清空恢复、iframe 预览打开/ESC 关闭/hash 复原、打开后"最近使用"区出现、无横向滚动、深色背景生效；grep 确认无 http(s) 外链资源。
+- 已知限制：tools/ 下各工具页仍为各自浅色样式（本次改版范围为导航站外壳）。
+
 <!-- CHANGELOG-ID: CHG-T04-RECENT-SORT -->
 ### [2026-10-12] - T04 最近使用与排序 (#4)
 - 导航页重构为状态化 render()：打开工具（含新标签链接点击）时写入浏览器 localStorage 最近记录（按 path 去重、时间戳排序、置顶"最近使用"区最多 8 条）；新增排序下拉：按名称（默认，分类分组）/按最近使用/按最新（文件 mtime 倒序），选择持久化本地。

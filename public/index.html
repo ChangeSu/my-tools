@@ -4,16 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>工具导航</title>
+  <!-- 内联 SVG 图标作站点图标（data URI，零外部依赖） -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='7' height='7' rx='1.5' fill='%236c8cff'/%3E%3Crect x='9' width='7' height='7' rx='1.5' fill='%236c8cff' opacity='.5'/%3E%3Crect y='9' width='7' height='7' rx='1.5' fill='%236c8cff' opacity='.5'/%3E%3Crect x='9' y='9' width='7' height='7' rx='1.5' fill='%236c8cff'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
   <header class="site-header">
-    <h1>工具导航</h1>
+    <h1>
+      <!-- 内联 SVG：应用宫格 Logo -->
+      <svg class="logo-icon" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true">
+        <rect width="7" height="7" rx="1.5" fill="currentColor"></rect>
+        <rect x="9" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"></rect>
+        <rect y="9" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"></rect>
+        <rect x="9" y="9" width="7" height="7" rx="1.5" fill="currentColor"></rect>
+      </svg>
+      工具导航
+    </h1>
     <p class="subtitle">个人小工具集合</p>
   </header>
   <main>
     <div id="toolbar" class="toolbar">
-      <input id="search" type="search" placeholder="搜索工具（名称或分类）…" autocomplete="off">
+      <div class="search-box">
+        <!-- 内联 SVG：放大镜 -->
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+          <line x1="11" y1="11" x2="14.5" y2="14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></line>
+        </svg>
+        <input id="search" type="search" placeholder="搜索工具（名称或分类）…" autocomplete="off">
+      </div>
       <label class="sort-label">排序
         <select id="sort">
           <option value="name">按名称</option>
@@ -31,7 +49,13 @@
       <span id="preview-title" class="preview-title"></span>
       <span class="preview-actions">
         <a id="preview-open" href="#" target="_blank" rel="noopener">新标签页打开</a>
-        <button id="preview-close" type="button" title="关闭（Esc）">关闭 ✕</button>
+        <button id="preview-close" type="button" title="关闭（Esc）">
+          <!-- 内联 SVG：关闭叉号 -->
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M1.5 1.5 L10.5 10.5 M10.5 1.5 L1.5 10.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+          </svg>
+          关闭
+        </button>
       </span>
     </header>
     <iframe id="preview-frame" title="工具预览"></iframe>
