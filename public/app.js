@@ -54,4 +54,26 @@
     group.appendChild(list);
     groupsEl.appendChild(group);
   }
+  const toolbar = document.getElementById('toolbar');
+  toolbar.hidden = false;
+  const search = document.getElementById('search');
+  const emptyHint = document.getElementById('empty');
+
+  function applyFilter() {
+    const q = search.value.trim().toLowerCase();
+    let visibleTotal = 0;
+    for (const group of groupsEl.querySelectorAll('.group')) {
+      let visible = 0;
+      for (const card of group.querySelectorAll('.tool-card')) {
+        const hit = !q || card.dataset.name.includes(q) || card.dataset.category.includes(q);
+        card.hidden = !hit;
+        if (hit) visible++;
+      }
+      group.hidden = visible === 0;
+      visibleTotal += visible;
+    }
+    emptyHint.hidden = visibleTotal !== 0;
+  }
+
+  search.addEventListener('input', applyFilter);
 })();

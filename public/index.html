@@ -12,8 +12,12 @@
     <p class="subtitle">个人小工具集合</p>
   </header>
   <main>
+    <div id="toolbar" class="toolbar">
+      <input id="search" type="search" placeholder="搜索工具（名称或分类）…" autocomplete="off">
+    </div>
     <div id="status" class="status">正在加载工具列表…</div>
     <div id="groups"></div>
+    <div id="empty" class="status" hidden>没有匹配的工具。</div>
   </main>
   <script src="/app.js"></script>
 </body>
