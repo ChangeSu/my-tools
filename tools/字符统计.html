@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>字符统计</title>
+  <style>
+    body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #2b2f36; }
+    h1 { font-size: 20px; }
+    textarea { width: 100%; height: 180px; font-size: 14px; padding: 10px; border: 1px solid #d5d9e0; border-radius: 8px; }
+    #result { margin-top: 16px; font-size: 14px; line-height: 1.8; color: #4a5160; }
+  </style>
+</head>
+<body>
+  <h1>字符统计</h1>
+  <textarea id="input" placeholder="输入或粘贴文本…"></textarea>
+  <div id="result"></div>
+  <script>
+    const input = document.getElementById('input');
+    const result = document.getElementById('result');
+    input.addEventListener('input', () => {
+      const text = input.value;
+      const chars = [...text].length;
+      const noSpace = [...text.replace(/\s/g, '')].length;
+      const words = (text.trim().match(/\S+/g) || []).length;
+      const lines = text === '' ? 0 : text.split(/\n/).length;
+      result.textContent = `字符数: ${chars}　不含空白: ${noSpace}　单词数: ${words}　行数: ${lines}`;
+    });
+  </script>
+</body>
+</html>
