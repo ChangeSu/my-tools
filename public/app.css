@@ -13,9 +13,9 @@ body {
 .site-header h1 { font-size: 22px; font-weight: 600; }
 .subtitle { margin-top: 4px; color: #7b828d; font-size: 13px; }
 main { max-width: 960px; margin: 0 auto; padding: 24px 32px 48px; }
-.toolbar { margin-bottom: 16px; }
+.toolbar { margin-bottom: 16px; display: flex; gap: 12px; align-items: center; }
 #search {
-  width: 100%;
+  flex: 1;
   padding: 10px 14px;
   font-size: 14px;
   border: 1px solid #d5d9e0;
@@ -23,6 +23,8 @@ main { max-width: 960px; margin: 0 auto; padding: 24px 32px 48px; }
   background: #ffffff;
 }
 #search:focus { outline: 2px solid #4c7dff33; border-color: #4c7dff; }
+.sort-label { display: flex; gap: 6px; align-items: center; font-size: 13px; color: #4a5160; white-space: nowrap; }
+#sort { padding: 8px 10px; border: 1px solid #d5d9e0; border-radius: 8px; background: #ffffff; font-size: 13px; }
 .status { color: #7b828d; font-size: 14px; padding: 12px 0; }
 .group { margin-bottom: 28px; }
 .group-title {

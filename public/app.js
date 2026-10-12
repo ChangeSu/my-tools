@@ -1,10 +1,13 @@
 (async function () {
   const statusEl = document.getElementById('status');
   const groupsEl = document.getElementById('groups');
+  const emptyHint = document.getElementById('empty');
+  const search = document.getElementById('search');
+  const sortSelect = document.getElementById('sort');
 
-  function toolUrl(toolPath) {
-    return '/tools/' + toolPath.split('/').map(encodeURIComponent).join('/');
-  }
+  const RECENT_KEY = 'my-tools-recent';
+  const SORT_KEY = 'my-tools-sort';
+  const RECENT_LIMIT = 8;
 
   let tools = [];
   try {
@@ -23,46 +26,111 @@
     return;
   }
 
-  const byCategory = new Map();
-  for (const tool of tools) {
-    if (!byCategory.has(tool.category)) byCategory.set(tool.category, []);
-    byCategory.get(tool.category).push(tool);
+  function loadRecents() {
+    try {
+      return JSON.parse(localStorage.getItem(RECENT_KEY)) || {};
+    } catch (err) {
+      return {};
+    }
   }
 
-  for (const [category, items] of byCategory) {
-    const group = document.createElement('section');
-    group.className = 'group';
+  function saveRecents(recents) {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recents));
+  }
+
+  function recordOpen(toolPath) {
+    const recents = loadRecents();
+    recents[toolPath] = Date.now();
+    saveRecents(recents);
+    render();
+  }
+
+  function toolUrl(toolPath) {
+    return '/tools/' + toolPath.split('/').map(encodeURIComponent).join('/');
+  }
+
+  function byName(a, b) {
+    return a.name.localeCompare(b.name, 'zh');
+  }
+
+  function cardEl(tool) {
+    const a = document.createElement('a');
+    a.className = 'tool-card';
+    a.href = toolUrl(tool.path);
+    a.target = '_blank';
+    a.dataset.name = tool.name.toLowerCase();
+    a.dataset.category = tool.category.toLowerCase();
+    a.dataset.toolPath = tool.path;
+    const name = document.createElement('div');
+    name.className = 'tool-name';
+    name.textContent = tool.name;
+    const pathEl = document.createElement('div');
+    pathEl.className = 'tool-path';
+    pathEl.textContent = tool.path;
+    a.appendChild(name);
+    a.appendChild(pathEl);
+    return a;
+  }
+
+  function sectionEl(titleText, items) {
+    if (items.length === 0) return null;
+    const section = document.createElement('section');
+    section.className = 'group';
     const title = document.createElement('h2');
     title.className = 'group-title';
-    title.textContent = category;
-    group.appendChild(title);
+    title.textContent = titleText;
+    section.appendChild(title);
     const list = document.createElement('div');
     list.className = 'tool-list';
-    for (const tool of items) {
-      const a = document.createElement('a');
-      a.className = 'tool-card';
-      a.href = toolUrl(tool.path);
-      a.target = '_blank';
-      a.dataset.name = tool.name.toLowerCase();
-      a.dataset.category = tool.category.toLowerCase();
-      a.dataset.toolPath = tool.path;
-      const name = document.createElement('div');
-      name.className = 'tool-name';
-      name.textContent = tool.name;
-      const pathEl = document.createElement('div');
-      pathEl.className = 'tool-path';
-      pathEl.textContent = tool.path;
-      a.appendChild(name);
-      a.appendChild(pathEl);
-      list.appendChild(a);
-    }
-    group.appendChild(list);
-    groupsEl.appendChild(group);
+    for (const tool of items) list.appendChild(cardEl(tool));
+    section.appendChild(list);
+    return section;
   }
-  const toolbar = document.getElementById('toolbar');
-  toolbar.hidden = false;
-  const search = document.getElementById('search');
-  const emptyHint = document.getElementById('empty');
+
+  function recentTools(recents) {
+    return Object.keys(recents)
+      .map(p => tools.find(t => t.path === p))
+      .filter(Boolean)
+      .sort((a, b) => recents[b.path] - recents[a.path])
+      .slice(0, RECENT_LIMIT);
+  }
+
+  function render() {
+    groupsEl.textContent = '';
+    const recents = loadRecents();
+    const mode = sortSelect.value;
+
+    const recentList = recentTools(recents);
+    const recentSection = sectionEl('最近使用', recentList);
+    if (recentSection) groupsEl.appendChild(recentSection);
+
+    if (mode === 'recent') {
+      const sorted = tools.slice().sort((a, b) => (recents[b.path] || 0) - (recents[a.path] || 0) || byName(a, b));
+      const section = sectionEl('按最近使用', sorted);
+      if (section) groupsEl.appendChild(section);
+    } else if (mode === 'newest') {
+      const sorted = tools.slice().sort((a, b) => b.mtime.localeCompare(a.mtime));
+      const section = sectionEl('按最新修改', sorted);
+      if (section) groupsEl.appendChild(section);
+    } else {
+      const byCategory = new Map();
+      for (const tool of tools.slice().sort(byName)) {
+        if (!byCategory.has(tool.category)) byCategory.set(tool.category, []);
+        byCategory.get(tool.category).push(tool);
+      }
+      for (const [category, items] of byCategory) {
+        const section = sectionEl(category, items);
+        if (section) groupsEl.appendChild(section);
+      }
+    }
+    applyFilter();
+  }
+
+  sortSelect.value = localStorage.getItem(SORT_KEY) || 'name';
+  sortSelect.addEventListener('change', () => {
+    localStorage.setItem(SORT_KEY, sortSelect.value);
+    render();
+  });
 
   function applyFilter() {
     const q = search.value.trim().toLowerCase();
@@ -126,6 +194,7 @@
 
   function openPreview(toolPath) {
     history.pushState(null, '', '#tool=' + encodeURIComponent(toolPath));
+    recordOpen(toolPath);
     syncPreview();
   }
 
@@ -149,5 +218,6 @@
     if (event.key === 'Escape' && !overlay.hidden) closePreview();
   });
 
+  render();
   syncPreview();
 })();
