@@ -10,6 +10,8 @@ services:
         target: /data/tools
     environment:
       - TOOLS_DIR=/data/tools
+    mem_limit: 128m
+    memswap_limit: 128m
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/api/tools', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]

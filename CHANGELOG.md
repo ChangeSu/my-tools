@@ -1,5 +1,11 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-OPS-COMPOSE-MEM-LIMIT -->
+### [2026-10-12] - compose 内存上限 (#5 后续运维加固)
+- docker-compose.yml 增加 `mem_limit: 128m` 与 `memswap_limit: 128m`（非 swarm 部署生效，超限由内核 OOM 杀容器、由 restart 策略拉起）；README Docker 部署节补充说明。
+- 自测：`docker compose up -d` 重建后 inspect 确认 Memory=134217728、MemorySwap=134217728；`/api/tools` 200；`docker stats` 实测 8.7MiB/128MiB（6.81%）。
+- 已知限制：无。
+
 <!-- CHANGELOG-ID: CHG-STY-NAV-LIGHT-FLAT-ADMIN -->
 ### [2026-10-12] - 导航站改版为浅色扁平企业后台风（纯样式，用户提供配色规范）
 - app.css 按规范全量重写：页面底 #f7f7f8、顶栏/分组/卡片面 #ffffff、主文本 #222、次要文本 #666、弱化文本 #999、边框/分割线 #e5e5e5、卡片 hover 浅灰 #f5f5f6（仿表格行）；主操作按钮（关闭）黑底白字，次要按钮（新标签页打开）白底灰边黑字；紧凑控件（7px 内边距、6px 圆角、13px 字号）、搜索+排序横向排列；无渐变无阴影，保留 sticky 头部、focus-visible、<640px 堆叠。

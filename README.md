@@ -40,6 +40,8 @@ TOOLS_DIR=/d/my-html-tools PORT=3001 docker compose up -d
 - `TOOLS_DIR`：宿主机上的工具目录（绝对路径最稳妥），容器内挂载到 `/data/tools`
 - `PORT`：宿主机暴露端口，容器内部固定 3000
 
+容器已设置内存上限 128MiB（`mem_limit`，并禁用 swap 超出），实测服务常驻占用约 9MiB。
+
 ### 添加新工具
 
 无需重启或重建：
