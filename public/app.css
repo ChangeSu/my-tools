@@ -47,3 +47,34 @@ main { max-width: 960px; margin: 0 auto; padding: 24px 32px 48px; }
 .tool-card:hover { box-shadow: 0 2px 10px rgba(30, 40, 70, .12); transform: translateY(-1px); }
 .tool-name { font-size: 15px; font-weight: 600; word-break: break-all; }
 .tool-path { margin-top: 4px; font-size: 12px; color: #9aa1ac; word-break: break-all; }
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: #f5f6f8;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+.preview-overlay[hidden] { display: none; }
+.preview-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e5ea;
+  padding: 10px 20px;
+}
+.preview-title { font-size: 15px; font-weight: 600; }
+.preview-actions { display: flex; gap: 14px; align-items: center; }
+#preview-open { font-size: 13px; color: #4c7dff; text-decoration: none; }
+#preview-open:hover { text-decoration: underline; }
+#preview-close {
+  font-size: 13px;
+  padding: 6px 14px;
+  border: 1px solid #d5d9e0;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+#preview-close:hover { background: #f0f3fa; }
+#preview-frame { flex: 1; width: 100%; border: none; background: #ffffff; }

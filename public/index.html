@@ -19,6 +19,16 @@
     <div id="groups"></div>
     <div id="empty" class="status" hidden>没有匹配的工具。</div>
   </main>
+  <div id="preview-overlay" class="preview-overlay" hidden>
+    <header class="preview-bar">
+      <span id="preview-title" class="preview-title"></span>
+      <span class="preview-actions">
+        <a id="preview-open" href="#" target="_blank" rel="noopener">新标签页打开</a>
+        <button id="preview-close" type="button" title="关闭（Esc）">关闭 ✕</button>
+      </span>
+    </header>
+    <iframe id="preview-frame" title="工具预览"></iframe>
+  </div>
   <script src="/app.js"></script>
 </body>
 </html>

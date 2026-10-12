@@ -2,6 +2,10 @@
   const statusEl = document.getElementById('status');
   const groupsEl = document.getElementById('groups');
 
+  function toolUrl(toolPath) {
+    return '/tools/' + toolPath.split('/').map(encodeURIComponent).join('/');
+  }
+
   let tools = [];
   try {
     const resp = await fetch('/api/tools');
@@ -37,10 +41,11 @@
     for (const tool of items) {
       const a = document.createElement('a');
       a.className = 'tool-card';
-      a.href = '/tools/' + tool.path.split('/').map(encodeURIComponent).join('/');
+      a.href = toolUrl(tool.path);
       a.target = '_blank';
       a.dataset.name = tool.name.toLowerCase();
       a.dataset.category = tool.category.toLowerCase();
+      a.dataset.toolPath = tool.path;
       const name = document.createElement('div');
       name.className = 'tool-name';
       name.textContent = tool.name;
@@ -76,4 +81,73 @@
   }
 
   search.addEventListener('input', applyFilter);
+
+  const overlay = document.getElementById('preview-overlay');
+  const frame = document.getElementById('preview-frame');
+  const titleEl = document.getElementById('preview-title');
+  const openLink = document.getElementById('preview-open');
+  const closeBtn = document.getElementById('preview-close');
+
+  function currentToolPath() {
+    const m = location.hash.match(/^#tool=(.+)$/);
+    if (!m) return null;
+    let toolPath;
+    try {
+      toolPath = decodeURIComponent(m[1]);
+    } catch (err) {
+      return null;
+    }
+    // CHANGELOG-REF: CHG-T03-IFRAME-PREVIEW
+    // Why: hash is user-shareable input; block protocol-relative and traversal paths.
+    if (!/^[^/\\]+(\/[^/\\]+)*$/.test(toolPath) || !/\.html?$/i.test(toolPath)) return null;
+    return toolPath;
+  }
+
+  function syncPreview() {
+    const toolPath = currentToolPath();
+    if (!toolPath) {
+      overlay.hidden = true;
+      frame.removeAttribute('src');
+      return;
+    }
+    const url = toolUrl(toolPath);
+    const name = pathDisplayName(toolPath);
+    titleEl.textContent = name;
+    openLink.href = url;
+    frame.src = url;
+    overlay.hidden = false;
+    closeBtn.focus();
+  }
+
+  function pathDisplayName(toolPath) {
+    const file = toolPath.split('/').pop();
+    return file.replace(/\.html?$/i, '');
+  }
+
+  function openPreview(toolPath) {
+    history.pushState(null, '', '#tool=' + encodeURIComponent(toolPath));
+    syncPreview();
+  }
+
+  function closePreview() {
+    history.pushState(null, '', location.pathname + location.search);
+    syncPreview();
+  }
+
+  groupsEl.addEventListener('click', (event) => {
+    const card = event.target.closest('a.tool-card');
+    if (!card) return;
+    event.preventDefault();
+    openPreview(card.dataset.toolPath);
+  });
+
+  closeBtn.addEventListener('click', closePreview);
+
+  window.addEventListener('popstate', syncPreview);
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !overlay.hidden) closePreview();
+  });
+
+  syncPreview();
 })();

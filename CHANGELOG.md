@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-T03-IFRAME-PREVIEW -->
+### [2026-10-12] - T03 iframe 内嵌预览 (#3)
+- 导航页点击工具卡片改为站内全屏 iframe 浮层打开：顶栏含工具名、"新标签页打开"链接与关闭按钮；ESC/关闭按钮收起浮层，列表层保持原位不丢滚动；预览状态写入 URL hash（`#tool=<path>`），刷新或分享链接可恢复。
+- hash 路径校验：仅允许非空段相对路径且以 .html/.htm 结尾，拒绝 `//host`（协议相对）、`..`、反斜杠构造（CHG-T03 缝合点：currentToolPath）。
+- 自测：浏览器断言 带 hash 刷新恢复浮层(iframe 内页 title 可读、同源)、点击卡片开/ESC 关/关闭按钮关、scrollY 保持、恶意 hash 三种构造均不设置 iframe src；工具页在新标签链接指向正确 URL。
+- 已知限制：浏览器后退回到"已关闭"历史条目时按 URL 状态重建浮层（hash 即状态的固有语义）；iframe 内部交互未单独脚本断言（同源且独立页已实测可用）。
+
 <!-- CHANGELOG-ID: CHG-T06-SAMPLE-TOOLS -->
 ### [2026-10-12] - T06 补充示例工具 (#6)
 - 新增单文件零依赖示例工具：`tools/格式转换/JSON格式化.html`（格式化/压缩/缩进选择/复制，非法输入报错）、`tools/编码加密/Base64编解码.html`（UTF-8 中英文编解码往返，非法 Base64 报错）。
