@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>时间戳转换</title>
+  <style>
+    :root {
+      --bg: #f7f7f8;
+      --surface: #ffffff;
+      --text: #222222;
+      --text-2: #666666;
+      --text-3: #999999;
+      --border: #e5e5e5;
+      --row-hover: #f5f5f6;
+      --primary-bg: #222222;
+      --primary-text: #ffffff;
+      --radius: 6px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+    .sub { color: var(--text-2); font-size: 13px; margin-bottom: 18px; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .panel-title::before {
+      content: "";
+      width: 3px;
+      height: 13px;
+      border-radius: 2px;
+      background: var(--primary-bg);
+    }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    label { font-size: 13px; color: var(--text-2); }
+    input[type="text"], select {
+      padding: 7px 10px;
+      font-size: 13px;
+      font-family: Consolas, "Courier New", ui-monospace, monospace;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    input[type="text"] { flex: 1; min-width: 180px; }
+    input[type="text"]:focus, select:focus { outline: none; border-color: var(--text-3); }
+    button {
+      padding: 7px 14px;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:hover { background: var(--row-hover); border-color: #d9d9d9; }
+    button.primary {
+      color: var(--primary-text);
+      background: var(--primary-bg);
+      border-color: var(--primary-bg);
+    }
+    button.primary:hover { background: #000000; }
+    button:focus-visible { outline: 2px solid var(--text-3); outline-offset: 2px; }
+    .kv { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; font-size: 13px; }
+    .kv dt { color: var(--text-2); }
+    .kv dd {
+      margin: 0;
+      font-family: Consolas, "Courier New", ui-monospace, monospace;
+      word-break: break-all;
+    }
+    .copy {
+      margin-left: 6px;
+      padding: 1px 7px;
+      font-size: 11px;
+      font-family: inherit;
+      color: var(--text-2);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    .copy:hover { background: var(--row-hover); color: var(--text); }
+    .error { color: #c0392b; font-size: 13px; min-height: 18px; margin-top: 8px; }
+    .hint { color: var(--text-3); font-size: 12px; }
+    .now-list { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; }
+    .now-list b { font-weight: 600; font-family: Consolas, monospace; }
+    @media (max-width: 640px) {
+      .kv { grid-template-columns: 1fr; gap: 0 0; }
+      .kv dd { margin-bottom: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>时间戳转换</h1>
+  <div class="sub">Unix 时间戳 ⇄ 本地/UTC 日期时间，纯本地计算，无需联网。</div>
+
+  <div class="panel">
+    <div class="panel-title">当前时间</div>
+    <div class="now-list">
+      <span>秒级时间戳 <b id="now-sec">-</b></span>
+      <span>毫秒级时间戳 <b id="now-ms">-</b></span>
+      <span>本地时间 <b id="now-local">-</b></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">时间戳 → 日期时间</div>
+    <div class="row">
+      <input type="text" id="ts-input" placeholder="例如 1700000000 或 1700000000000" autocomplete="off">
+      <select id="ts-unit">
+        <option value="auto" selected>自动识别</option>
+        <option value="s">秒 (s)</option>
+        <option value="ms">毫秒 (ms)</option>
+      </select>
+      <button class="primary" id="ts-convert">转换</button>
+      <button id="ts-now">填入当前</button>
+    </div>
+    <div class="error" id="ts-error"></div>
+    <dl class="kv" id="ts-result" hidden>
+      <dt>本地时间</dt><dd id="out-local"></dd>
+      <dt>UTC 时间</dt><dd id="out-utc"></dd>
+      <dt>ISO 8601</dt><dd id="out-iso"></dd>
+      <dt>秒级时间戳</dt><dd id="out-sec"></dd>
+      <dt>毫秒级时间戳</dt><dd id="out-ms"></dd>
+      <dt>相对现在</dt><dd id="out-rel"></dd>
+    </dl>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">日期时间 → 时间戳</div>
+    <div class="row">
+      <input type="text" id="dt-input" placeholder="例如 2024-01-01 12:00:00" autocomplete="off">
+      <button class="primary" id="dt-convert">转换</button>
+      <button id="dt-now">填入当前</button>
+    </div>
+    <div class="row">
+      <label><input type="radio" name="dt-zone" value="local" checked> 按本地时区</label>
+      <label><input type="radio" name="dt-zone" value="utc"> 按 UTC</label>
+      <span class="hint">可识别 2024-01-01、2024/01/01 12:00、2024-01-01T12:00:00 等写法</span>
+    </div>
+    <div class="error" id="dt-error"></div>
+    <dl class="kv" id="dt-result" hidden>
+      <dt>秒级时间戳</dt><dd id="dt-out-sec"></dd>
+      <dt>毫秒级时间戳</dt><dd id="dt-out-ms"></dd>
+      <dt>UTC 时间</dt><dd id="dt-out-utc"></dd>
+      <dt>本地时间</dt><dd id="dt-out-local"></dd>
+    </dl>
+  </div>
+
+  <script>
+    const pad = (n, len = 2) => String(n).padStart(len, '0');
+
+    // Format a Date as local time: YYYY-MM-DD HH:mm:ss
+    function formatLocal(date) {
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
+        + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
+
+    // Format a Date as UTC time: YYYY-MM-DD HH:mm:ss
+    function formatUtc(date) {
+      return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} `
+        + `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
+    }
+
+    function timezoneLabel() {
+      const offsetMin = -new Date().getTimezoneOffset();
+      const sign = offsetMin >= 0 ? '+' : '-';
+      const abs = Math.abs(offsetMin);
+      return `UTC${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+    }
+
+    // Human readable distance between two timestamps
+    function relativeText(targetMs, nowMs) {
+      const diff = targetMs - nowMs;
+      const abs = Math.abs(diff);
+      if (abs < 1000) return '刚刚';
+      const units = [
+        ['天', 86400000],
+        ['小时', 3600000],
+        ['分钟', 60000],
+        ['秒', 1000],
+      ];
+      for (const [name, size] of units) {
+        if (abs >= size) {
+          const value = Math.floor(abs / size);
+          return diff < 0 ? `${value} ${name}前` : `${value} ${name}后`;
+        }
+      }
+      return '刚刚';
+    }
+
+    function addCopy(targetDd, text) {
+      const btn = document.createElement('button');
+      btn.className = 'copy';
+      btn.type = 'button';
+      btn.textContent = '复制';
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '已复制';
+        } catch (err) {
+          btn.textContent = '复制失败';
+        }
+        setTimeout(() => { btn.textContent = '复制'; }, 1200);
+      });
+      targetDd.appendChild(btn);
+    }
+
+    function setField(dd, text) {
+      dd.textContent = text;
+      addCopy(dd, text);
+    }
+
+    // ---------- Timestamp -> datetime ----------
+    const tsInput = document.getElementById('ts-input');
+    const tsUnit = document.getElementById('ts-unit');
+    const tsError = document.getElementById('ts-error');
+    const tsResult = document.getElementById('ts-result');
+
+    function convertTimestamp() {
+      tsError.textContent = '';
+      tsResult.hidden = true;
+      const raw = tsInput.value.trim();
+      if (!raw) {
+        tsError.textContent = '请输入时间戳';
+        return;
+      }
+      if (!/^-?\d+(\.\d+)?$/.test(raw)) {
+        tsError.textContent = '时间戳只能是数字（可含小数）';
+        return;
+      }
+      let value = Number(raw);
+      let unit = tsUnit.value;
+      if (unit === 'auto') unit = Math.abs(value) < 1e11 ? 's' : 'ms';
+      const ms = unit === 's' ? value * 1000 : value;
+      const date = new Date(ms);
+      if (Number.isNaN(date.getTime())) {
+        tsError.textContent = '时间戳超出可表示范围';
+        return;
+      }
+      setField(document.getElementById('out-local'), `${formatLocal(date)}  (${timezoneLabel()})`);
+      setField(document.getElementById('out-utc'), `${formatUtc(date)}  (UTC)`);
+      setField(document.getElementById('out-iso'), date.toISOString());
+      setField(document.getElementById('out-sec'), String(Math.floor(ms / 1000)));
+      setField(document.getElementById('out-ms'), String(Math.round(ms)));
+      setField(document.getElementById('out-rel'), relativeText(ms, Date.now()));
+      tsResult.hidden = false;
+    }
+
+    document.getElementById('ts-convert').addEventListener('click', convertTimestamp);
+    tsInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') convertTimestamp(); });
+    document.getElementById('ts-now').addEventListener('click', () => {
+      tsInput.value = String(Math.floor(Date.now() / 1000));
+      tsUnit.value = 'auto';
+      convertTimestamp();
+    });
+
+    // ---------- Datetime -> timestamp ----------
+    const dtInput = document.getElementById('dt-input');
+    const dtError = document.getElementById('dt-error');
+    const dtResult = document.getElementById('dt-result');
+
+    function selectedZone() {
+      return document.querySelector('input[name="dt-zone"]:checked').value;
+    }
+
+    // Parse "YYYY-MM-DD HH:mm[:ss]" / "YYYY/MM/DD" / ISO string into ms
+    function parseDateTime(text, zone) {
+      const m = text.trim().match(
+        /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2})(?::(\d{1,2}))?(?::(\d{1,2}))?)?$/
+      );
+      const normalized = text.trim().replace(/\//g, '-').replace(/\s+/, 'T');
+      if (m) {
+        const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+        const hour = m[4] === undefined ? 0 : Number(m[4]);
+        const minute = m[5] === undefined ? 0 : Number(m[5]);
+        const second = m[6] === undefined ? 0 : Number(m[6]);
+        if (month < 1 || month > 12 || day < 1 || day > 31) return NaN;
+        if (hour > 23 || minute > 59 || second > 59) return NaN;
+        return zone === 'utc'
+          ? Date.UTC(year, month - 1, day, hour, minute, second)
+          : new Date(year, month - 1, day, hour, minute, second).getTime();
+      }
+      const parsed = Date.parse(normalized);
+      return Number.isNaN(parsed) ? NaN : parsed;
+    }
+
+    function convertDateTime() {
+      dtError.textContent = '';
+      dtResult.hidden = true;
+      const raw = dtInput.value.trim();
+      if (!raw) {
+        dtError.textContent = '请输入日期时间';
+        return;
+      }
+      const zone = selectedZone();
+      const ms = parseDateTime(raw, zone);
+      if (Number.isNaN(ms)) {
+        dtError.textContent = '无法识别该日期时间格式';
+        return;
+      }
+      const date = new Date(ms);
+      setField(document.getElementById('dt-out-sec'), String(Math.floor(ms / 1000)));
+      setField(document.getElementById('dt-out-ms'), String(ms));
+      setField(document.getElementById('dt-out-utc'), `${formatUtc(date)}  (UTC)`);
+      setField(document.getElementById('dt-out-local'), `${formatLocal(date)}  (${timezoneLabel()})`);
+      dtResult.hidden = false;
+    }
+
+    document.getElementById('dt-convert').addEventListener('click', convertDateTime);
+    dtInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') convertDateTime(); });
+    document.getElementById('dt-now').addEventListener('click', () => {
+      dtInput.value = formatLocal(new Date());
+      convertDateTime();
+    });
+
+    // ---------- Live clock ----------
+    function tick() {
+      const now = Date.now();
+      document.getElementById('now-sec').textContent = Math.floor(now / 1000);
+      document.getElementById('now-ms').textContent = now;
+      document.getElementById('now-local').textContent = `${formatLocal(new Date(now))} (${timezoneLabel()})`;
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // Prefill both panels so the page is useful on first paint
+    tsInput.value = String(Math.floor(Date.now() / 1000));
+    convertTimestamp();
+    dtInput.value = formatLocal(new Date());
+    convertDateTime();
+  </script>
+</body>
+</html>
