@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-T04-NAV-SIMPLIFY -->
+### [2026-10-14] - 导航页按用户要求精简（去最近使用/排序/页面内预览）
+- 导航页行为简化：移除"最近使用"记录（localStorage 的 my-tools-recent 不再读写）、移除排序下拉（固定按名称 localeCompare('zh') 排序、按分类分组）、移除 iframe 页面内预览浮层（含 hash 路由 #tool=、preview-overlay/打开/关闭按钮与 Esc 处理），点击卡片直接以 target=_blank + rel=noopener 在新标签页打开工具。
+- 涉及文件：public/app.js 重写为"加载列表→按分类分组渲染→搜索过滤"三步；public/index.html 删除排序下拉与预览浮层 DOM；public/app.css 删除 .sort-label/#sort 与 .preview-* / #preview-* 样式；README.md 功能描述同步更新。
+- 自测：`node server.js`（PORT=18088）实跑，/ 返回 200 且 DOM 无 sort/preview/recent 元素、app.js 无 recordOpen/localStorage 引用、卡片 a 标签含 target=_blank 与 rel=noopener；/api/tools 正常返回 7 个工具；搜索过滤与分组渲染正常。
+- 已知限制：此前通过 #tool=xxx 分享的 hash 链接不再被识别，会直接显示导航页。
+
 <!-- CHANGELOG-ID: CHG-T08-JSVC-MANAGER-UI-SIMPLIFY -->
 ### [2026-10-14] - 服务管理页按用户反馈精简
 - 按用户要求：日志不再做在线查看，改为新增"日志文件"列直接展示 logFile 路径（hover title 显示全路径）；移除"打开"和"删除"按钮（URL 列保留可点击链接），行操作仅剩 停止/启动。服务端同步删除随之不再使用的 `GET /api/services/log` 与 `POST /api/services/action` 的 delete 分支。
@@ -19,6 +26,12 @@
 - server.js 新增 API：`GET /api/services`（清单+存活+健康）、`GET /api/services/log?name=`（仅允许注册表内记录的 logFile，防任意路径读取）、`POST /api/services/action`（stop/start/delete）；注册表解析采用"头部行+每服务行块"结构，字段更新为行级编辑并写回，`site`/`warPath`/`extraArgs` 等未枚举字段不会丢失；注册表路径可用 `JSVC_REGISTRY_PATH` 环境变量覆盖。
 - 自测：临时注册表+测试 jar 端到端实跑——start 后 PID 存活、健康检查对无 HTTP 服务正确返回 false；运行中删除/重复启动均被拒绝；stop 后 stopTime 落盘、删除后条目消失；日志接口返回内容正确；`/api/tools` 列出"服务管理.html"、页面 200 `text/html; charset=utf-8`；全程验证真实注册表未被测试写入、无残留 java 进程。
 - 已知限制：启动仅支持 jarPath 为文件的可执行 jar/war（exploded war 等形态仍需通过 jrun 技能）；profile 字段仅当形如 `dev/test/prod` 等合法名时透传，注册表中的自由描述文本会被跳过；日志查看按 400 行截断、UTF-8 解码（GBK 日志可能乱码）。
+
+<!-- CHANGELOG-ID: CHG-T07-TIMESTAMP-CONVERT -->
+### [2026-10-13] - 新增时间戳转换工具
+- 新增单文件零依赖工具 `tools/格式转换/时间戳转换.html`，双向换算：时间戳 → 本地/UTC 日期时间、ISO 8601、秒/毫秒戳、相对现在；日期时间 → 秒/毫秒戳、UTC/本地时间。支持自动识别秒级/毫秒级（`|v| < 1e11` 视为秒）、可选按本地时区或 UTC 解析、回车触发转换、可识别 `YYYY-MM-DD`/`YYYY/MM/DD`/`YYYY-MM-DD HH:mm[:ss]`/ISO 写法；顶部实时显示当前秒级/毫秒级戳（1s 轮询），各结果字段带单独复制按钮；样式沿用导航站浅色扁平规范（#f7f7f8 底 / #fff 面 / #e5e5e5 边 / 黑底白字主按钮）。
+- 自测：Node 侧以最小 DOM stub 加载页面内联脚本，13 条断言全绿——本地/UTC 解析四种写法与三组非法输入（乱文本、13 月、25 时）拒绝、`formatLocal`/`formatUtc` 补零正确、相对时间“2 小时前 / 3 天后 / 刚刚”；导航服务实跑（PORT=3199）确认 `/api/tools` 返回 `{path:"格式转换/时间戳转换.html",category:"格式转换"}`、`/tools/格式转换/时间戳转换.html` 返回 200 且 `text/html; charset=utf-8`、title 正确。
+- 已知限制：`Date.parse` 兜底分支未覆盖带时区偏移（如 `+08:00`）写法之外的模糊格式；毫秒精度超出 JS Date 范围（±8.64e15）时报“超出可表示范围”。
 
 <!-- CHANGELOG-ID: CHG-OPS-COMPOSE-MEM-LIMIT -->
 ### [2026-10-12] - compose 内存上限 (#5 后续运维加固)

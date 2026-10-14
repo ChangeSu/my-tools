@@ -32,34 +32,11 @@
         </svg>
         <input id="search" type="search" placeholder="搜索工具（名称或分类）…" autocomplete="off">
       </div>
-      <label class="sort-label">排序
-        <select id="sort">
-          <option value="name">按名称</option>
-          <option value="recent">按最近使用</option>
-          <option value="newest">按最新</option>
-        </select>
-      </label>
     </div>
     <div id="status" class="status">正在加载工具列表…</div>
     <div id="groups"></div>
     <div id="empty" class="status" hidden>没有匹配的工具。</div>
   </main>
-  <div id="preview-overlay" class="preview-overlay" hidden>
-    <header class="preview-bar">
-      <span id="preview-title" class="preview-title"></span>
-      <span class="preview-actions">
-        <a id="preview-open" href="#" target="_blank" rel="noopener">新标签页打开</a>
-        <button id="preview-close" type="button" title="关闭（Esc）">
-          <!-- 内联 SVG：关闭叉号 -->
-          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-            <path d="M1.5 1.5 L10.5 10.5 M10.5 1.5 L1.5 10.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
-          </svg>
-          关闭
-        </button>
-      </span>
-    </header>
-    <iframe id="preview-frame" title="工具预览"></iframe>
-  </div>
   <script src="/app.js"></script>
 </body>
 </html>
