@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-T09-MD-MERMAID-TOOLS -->
+### [2026-10-14] - 新增 MD 文档查看器与 Mermaid 转图片工具
+- 新增 `tools/MD文档查看器.html`：Markdown 编辑/预览双栏，内置 markdown 渲染（标题/列表/表格/代码块/引用）、Mermaid 图表渲染（依赖同目录 `tools/mermaid.min.js` 本地库，零外网依赖）、暗色图表主题、编辑实时刷新。
+- 新增 `tools/格式转换/mermaid2pic.html`：Mermaid 代码转 SVG/PNG 图片，左侧编辑右侧实时预览，可直接下载导出。
+- 自测：两个工具页面由本地服务正常加载，Mermaid 本地渲染不依赖外部 CDN（文件级检查无 http(s) 外链脚本）。
+- 已知限制：mermaid.min.js 为内置第三方库，升级需手动替换。
+
 <!-- CHANGELOG-ID: CHG-T04-NAV-SIMPLIFY -->
 ### [2026-10-14] - 导航页按用户要求精简（去最近使用/排序/页面内预览）
 - 导航页行为简化：移除"最近使用"记录（localStorage 的 my-tools-recent 不再读写）、移除排序下拉（固定按名称 localeCompare('zh') 排序、按分类分组）、移除 iframe 页面内预览浮层（含 hash 路由 #tool=、preview-overlay/打开/关闭按钮与 Esc 处理），点击卡片直接以 target=_blank + rel=noopener 在新标签页打开工具。
