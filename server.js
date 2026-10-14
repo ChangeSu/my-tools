@@ -338,37 +338,7 @@ async function handleServiceAction(res, raw) {
     return sendJson(res, 200, { ok: true, message: `${name} 已启动 (PID ${child.pid})`, pid: child.pid });
   }
 
-  if (action === 'delete') {
-    if (svc.pid && pidAlive(svc.pid)) {
-      return sendJson(res, 400, { error: `${name} 仍在运行，请先停止再删除记录` });
-    }
-    reg.blocks = reg.blocks.filter(b => b !== block);
-    writeRegistry(reg);
-    return sendJson(res, 200, { ok: true, message: `已从注册表移除 ${name}` });
-  }
-
   return sendJson(res, 400, { error: '未知 action: ' + action });
-}
-
-function handleServiceLog(req, res) {
-  const params = new URL(req.url, 'http://localhost').searchParams;
-  const name = params.get('name');
-  const lines = Math.min(Number(params.get('lines')) || 200, 1000);
-  const block = name ? findBlock(readRegistry().blocks, name) : null;
-  if (!block) return sendJson(res, 404, { error: '注册表中未找到服务: ' + name });
-  const logFile = blockFields(block).logFile;
-  if (!logFile || !fs.existsSync(logFile) || !fs.statSync(logFile).isFile()) {
-    return sendJson(res, 404, { error: '日志文件不存在: ' + (logFile || '(未记录)') });
-  }
-  const size = fs.statSync(logFile).size;
-  const start = Math.max(0, size - 131072);
-  const buf = Buffer.alloc(size - start);
-  const fd = fs.openSync(logFile, 'r');
-  fs.readSync(fd, buf, 0, buf.length, start);
-  fs.closeSync(fd);
-  const all = buf.toString('utf8').split(/\r?\n/);
-  if (start > 0) all.shift();
-  sendJson(res, 200, { log: all.slice(-lines).join('\n'), logFile });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -392,7 +362,6 @@ const server = http.createServer(async (req, res) => {
   if (urlPath === '/') return serveFile(res, path.join(PUBLIC_DIR, 'index.html'));
   if (urlPath === '/api/tools') return sendJson(res, 200, { tools: listTools() });
   if (urlPath === '/api/services') return handleListServices(res);
-  if (urlPath === '/api/services/log') return handleServiceLog(req, res);
 
   if (urlPath.startsWith('/tools/')) {
     const filePath = safeJoin(TOOLS_DIR, urlPath.slice('/tools/'.length));

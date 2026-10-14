@@ -93,27 +93,6 @@
     .btn.primary:hover { background: #000; }
     .btn.danger { color: var(--danger); }
     .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    /* 日志浮层 */
-    .log-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.35);
-      z-index: 100; display: flex; align-items: center; justify-content: center; padding: 40px;
-    }
-    .log-panel {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      width: 100%; max-width: 960px; height: 80vh; display: flex; flex-direction: column; overflow: hidden;
-    }
-    .log-bar {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 14px; border-bottom: 1px solid var(--border);
-    }
-    .log-bar .log-title { font-weight: 600; font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .log-bar .log-file { font-size: 12px; color: var(--text-3); font-family: Consolas, monospace; }
-    #log-pre {
-      flex: 1; overflow: auto; padding: 12px 14px; background: #fcfcfc;
-      font-family: Consolas, "Courier New", ui-monospace, monospace; font-size: 12px; line-height: 1.6;
-      white-space: pre-wrap; word-break: break-all; color: var(--text);
-    }
     .empty-tip { text-align: center; color: var(--text-3); padding: 40px 0; }
   </style>
 </head>
@@ -153,7 +132,7 @@
         <thead>
           <tr>
             <th>状态</th><th>服务</th><th>PID</th><th>端口</th><th>Profile</th>
-            <th>启动时间</th><th>URL</th><th>操作</th>
+            <th>启动时间</th><th>URL</th><th>日志文件</th><th>操作</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -162,22 +141,9 @@
     </div>
   </div>
 
-  <div id="log-overlay" class="log-overlay" hidden>
-    <div class="log-panel">
-      <div class="log-bar">
-        <span id="log-title" class="log-title"></span>
-        <span id="log-file" class="log-file"></span>
-        <button id="log-reload" type="button" class="btn">重新加载</button>
-        <button id="log-close" type="button" class="btn primary">关闭</button>
-      </div>
-      <pre id="log-pre">（空）</pre>
-    </div>
-  </div>
-
   <script>
     const $ = id => document.getElementById(id);
     let timer = null;
-    let logTarget = null;
 
     function esc(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
@@ -222,8 +188,6 @@
         const startTitle = canStart ? '' : (running ? '进程仍在运行'
           : (s.remoteMode ? 'docker/远程部署无法操作宿主机进程，请在本机工具站操作'
             : '注册表无 jarPath（exploded war 等请用 jrun 技能启动）'));
-        const actionsDisabled = !!s.remoteMode;
-        const actionsTitle = s.remoteMode ? ' title="docker/远程部署无法操作宿主机进程，请在本机工具站操作"' : '';
         return `<tr>
           <td>${healthDot}${statusTag}</td>
           <td><div class="svc-name">${esc(s.name)}</div><div class="svc-type">${esc(s.type || '')}</div></td>
@@ -232,13 +196,11 @@
           <td class="wrap">${esc(s.profile || '—')}</td>
           <td class="mono">${fmtTime(s.startTime)}</td>
           <td class="wrap">${s.url ? `<a class="link" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a>` : '—'}</td>
-          <td><div class="row-actions"${actionsTitle}>
-            ${actionBtn('日志', '', 'log')}
-            ${s.url ? actionBtn('打开', '', 'open') : ''}
+          <td class="wrap mono" title="${esc(s.logFile || '')}">${esc(s.logFile || '—')}</td>
+          <td><div class="row-actions">
             ${running
-              ? actionBtn('停止', 'danger', 'stop', actionsDisabled)
+              ? actionBtn('停止', 'danger', 'stop')
               : actionBtn('启动', 'primary', 'start', !canStart, startTitle)}
-            ${running ? '' : actionBtn('删除', 'danger', 'del', actionsDisabled)}
           </div></td>
         </tr>`;
       }).join('');
@@ -257,7 +219,7 @@
     }
 
     async function doAction(name, action) {
-      const verb = { stop: '停止', start: '启动', delete: '删除' }[action];
+      const verb = { stop: '停止', start: '启动' }[action];
       if (verb && !confirm(`确定${verb}服务 "${name}" 吗？`)) return;
       setStatus(`${verb} ${name} 中…`);
       try {
@@ -275,50 +237,17 @@
       await load();
     }
 
-    async function showLog(name) {
-      logTarget = name;
-      $('log-title').textContent = '日志 — ' + name;
-      $('log-file').textContent = '';
-      $('log-pre').textContent = '加载中…';
-      $('log-overlay').hidden = false;
-      await reloadLog();
-    }
-
-    async function reloadLog() {
-      try {
-        const data = await api('/api/services/log?name=' + encodeURIComponent(logTarget) + '&lines=400');
-        $('log-file').textContent = data.logFile || '';
-        $('log-pre').textContent = data.log || '（空）';
-        $('log-pre').scrollTop = $('log-pre').scrollHeight;
-      } catch (err) {
-        $('log-pre').textContent = '加载失败：' + err.message;
-      }
-    }
-
     $('rows').addEventListener('click', e => {
       const btn = e.target.closest('button[data-act]');
       if (!btn || btn.disabled) return;
       const name = btn.closest('tr').querySelector('.svc-name').textContent;
-      const act = btn.dataset.act;
-      if (act === 'log') showLog(name);
-      else if (act === 'open') {
-        const link = btn.closest('tr').querySelector('a.link');
-        if (link) window.open(link.href, '_blank', 'noopener');
-      } else doAction(name, act);
+      doAction(name, btn.dataset.act);
     });
 
     $('btn-refresh').addEventListener('click', load);
     $('auto-refresh').addEventListener('change', e => {
       clearInterval(timer);
       if (e.target.checked) timer = setInterval(load, 10000);
-    });
-    $('log-close').addEventListener('click', () => { $('log-overlay').hidden = true; logTarget = null; });
-    $('log-reload').addEventListener('click', reloadLog);
-    $('log-overlay').addEventListener('click', e => {
-      if (e.target === $('log-overlay')) { $('log-overlay').hidden = true; logTarget = null; }
-    });
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !$('log-overlay').hidden) { $('log-overlay').hidden = true; logTarget = null; }
     });
 
     $('jdk').value = localStorage.getItem('svc-jdk') || 'jdk8';

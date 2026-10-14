@@ -1,5 +1,11 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-T08-JSVC-MANAGER-UI-SIMPLIFY -->
+### [2026-10-14] - 服务管理页按用户反馈精简
+- 按用户要求：日志不再做在线查看，改为新增"日志文件"列直接展示 logFile 路径（hover title 显示全路径）；移除"打开"和"删除"按钮（URL 列保留可点击链接），行操作仅剩 停止/启动。服务端同步删除随之不再使用的 `GET /api/services/log` 与 `POST /api/services/action` 的 delete 分支。
+- 自测：`docker compose up -d --build`（PORT=18087）重建后页面含"日志文件"列、无 日志/打开/删除 相关 DOM 与 `/api/services/log` 引用；`/api/services/log` 返回 404；`/api/services` 三条记录及 logFile 路径正确；healthcheck healthy。
+- 已知限制：无。
+
 <!-- CHANGELOG-ID: CHG-T08-JSVC-MANAGER-REMOTE -->
 ### [2026-10-14] - 服务管理支持 docker 部署（远程模式）
 - docker 部署的 my-tools 更新至含服务管理的版本：server.js 新增 `JSVC_HEALTH_HOST` 远程模式——注册表挂载进容器但无法操作宿主机进程，判活改为对 `JSVC_HEALTH_HOST:port` 的 TCP 探测（替代 PID 检测）、健康检查将 URL 中 `localhost/127.0.0.1` 重写为该主机名；stop/start/delete 在远程模式下一律拒绝并返回明确提示；`tools/服务管理.html` 远程模式下禁用停止/启动/删除按钮并以 title 说明原因。
