@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-T08-JSVC-MANAGER -->
+### [2026-10-14] - 新增 Java 服务管理工具
+- 新增单文件零依赖工具 `tools/服务管理.html`（出现在导航"未分类"分组），管理 jrun 技能写入的 `~/.java-service-registry.yml`：表格展示全部服务记录，状态列为 PID 存活检测（process.kill(pid,0)）+ 运行中服务的 URL 健康探测（GET 1.5s 超时，<500 视为健康）；每行支持日志查看（服务端读取 logFile 末尾 128KB、返回末 400 行）、打开 URL、停止（taskkill /T /F）、启动（java -jar + `--server.port`/合法 profile 名/extraArgs，JDK 四选一 jdk8/11/17/21，10s 自动刷新期间选择持久化 localStorage）、删除记录（运行中禁止删除/启动）。10s 自动刷新可关。
+- server.js 新增 API：`GET /api/services`（清单+存活+健康）、`GET /api/services/log?name=`（仅允许注册表内记录的 logFile，防任意路径读取）、`POST /api/services/action`（stop/start/delete）；注册表解析采用"头部行+每服务行块"结构，字段更新为行级编辑并写回，`site`/`warPath`/`extraArgs` 等未枚举字段不会丢失；注册表路径可用 `JSVC_REGISTRY_PATH` 环境变量覆盖。
+- 自测：临时注册表+测试 jar 端到端实跑——start 后 PID 存活、健康检查对无 HTTP 服务正确返回 false；运行中删除/重复启动均被拒绝；stop 后 stopTime 落盘、删除后条目消失；日志接口返回内容正确；`/api/tools` 列出"服务管理.html"、页面 200 `text/html; charset=utf-8`；全程验证真实注册表未被测试写入、无残留 java 进程。
+- 已知限制：启动仅支持 jarPath 为文件的可执行 jar/war（exploded war 等形态仍需通过 jrun 技能）；profile 字段仅当形如 `dev/test/prod` 等合法名时透传，注册表中的自由描述文本会被跳过；日志查看按 400 行截断、UTF-8 解码（GBK 日志可能乱码）。
+
 <!-- CHANGELOG-ID: CHG-OPS-COMPOSE-MEM-LIMIT -->
 ### [2026-10-12] - compose 内存上限 (#5 后续运维加固)
 - docker-compose.yml 增加 `mem_limit: 128m` 与 `memswap_limit: 128m`（非 swarm 部署生效，超限由内核 OOM 杀容器、由 restart 策略拉起）；README Docker 部署节补充说明。
