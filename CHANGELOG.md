@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-T08-JSVC-MANAGER-REMOTE -->
+### [2026-10-14] - 服务管理支持 docker 部署（远程模式）
+- docker 部署的 my-tools 更新至含服务管理的版本：server.js 新增 `JSVC_HEALTH_HOST` 远程模式——注册表挂载进容器但无法操作宿主机进程，判活改为对 `JSVC_HEALTH_HOST:port` 的 TCP 探测（替代 PID 检测）、健康检查将 URL 中 `localhost/127.0.0.1` 重写为该主机名；stop/start/delete 在远程模式下一律拒绝并返回明确提示；`tools/服务管理.html` 远程模式下禁用停止/启动/删除按钮并以 title 说明原因。
+- docker-compose.yml 挂载 `${SVC_REGISTRY:-c:/Users/keda/.java-service-registry.yml}`（只读）到 `/data/java-service-registry.yml`，注入 `JSVC_REGISTRY_PATH` 与 `JSVC_HEALTH_HOST=host.docker.internal`。
+- 自测：`docker compose up -d --build` 重建后 `/api/services` 返回 3 条记录、远程模式 TCP 判活与真实状态一致（全部停止）、宿主机在监听端口从容器内可达；action 被拒绝且提示明确；`/api/tools` 7 个工具、服务管理页 200；healthcheck 转 healthy；部署端口保持 18087（重建时需 `PORT=18087`，本次曾因漏带该变量短暂重建为 3000 后已纠正）。
+- 已知限制：远程模式下日志查看不可用（logFile 为宿主机路径，容器内不存在，返回 404）；若注册表文件不存在，compose 的文件 bind 挂载会创建同名目录导致读取为空，需先保证文件存在。
+
 <!-- CHANGELOG-ID: CHG-T08-JSVC-MANAGER -->
 ### [2026-10-14] - 新增 Java 服务管理工具
 - 新增单文件零依赖工具 `tools/服务管理.html`（出现在导航"未分类"分组），管理 jrun 技能写入的 `~/.java-service-registry.yml`：表格展示全部服务记录，状态列为 PID 存活检测（process.kill(pid,0)）+ 运行中服务的 URL 健康探测（GET 1.5s 超时，<500 视为健康）；每行支持日志查看（服务端读取 logFile 末尾 128KB、返回末 400 行）、打开 URL、停止（taskkill /T /F）、启动（java -jar + `--server.port`/合法 profile 名/extraArgs，JDK 四选一 jdk8/11/17/21，10s 自动刷新期间选择持久化 localStorage）、删除记录（运行中禁止删除/启动）。10s 自动刷新可关。

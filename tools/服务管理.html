@@ -218,8 +218,12 @@
         const statusTag = running
           ? `<span class="tag run">运行中</span>`
           : `<span class="tag">已停止</span>`;
-        const canStart = !running && s.jarPath;
-        const startTitle = canStart ? '' : (running ? '进程仍在运行' : '注册表无 jarPath（exploded war 等请用 jrun 技能启动）');
+        const canStart = !running && s.jarPath && !s.remoteMode;
+        const startTitle = canStart ? '' : (running ? '进程仍在运行'
+          : (s.remoteMode ? 'docker/远程部署无法操作宿主机进程，请在本机工具站操作'
+            : '注册表无 jarPath（exploded war 等请用 jrun 技能启动）'));
+        const actionsDisabled = !!s.remoteMode;
+        const actionsTitle = s.remoteMode ? ' title="docker/远程部署无法操作宿主机进程，请在本机工具站操作"' : '';
         return `<tr>
           <td>${healthDot}${statusTag}</td>
           <td><div class="svc-name">${esc(s.name)}</div><div class="svc-type">${esc(s.type || '')}</div></td>
@@ -228,13 +232,13 @@
           <td class="wrap">${esc(s.profile || '—')}</td>
           <td class="mono">${fmtTime(s.startTime)}</td>
           <td class="wrap">${s.url ? `<a class="link" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a>` : '—'}</td>
-          <td><div class="row-actions">
+          <td><div class="row-actions"${actionsTitle}>
             ${actionBtn('日志', '', 'log')}
             ${s.url ? actionBtn('打开', '', 'open') : ''}
             ${running
-              ? actionBtn('停止', 'danger', 'stop')
+              ? actionBtn('停止', 'danger', 'stop', actionsDisabled)
               : actionBtn('启动', 'primary', 'start', !canStart, startTitle)}
-            ${running ? '' : actionBtn('删除', 'danger', 'del', false, '从注册表移除该记录')}
+            ${running ? '' : actionBtn('删除', 'danger', 'del', actionsDisabled)}
           </div></td>
         </tr>`;
       }).join('');

@@ -8,8 +8,15 @@ services:
       - type: bind
         source: ${TOOLS_DIR:-./tools}
         target: /data/tools
+      - type: bind
+        source: ${SVC_REGISTRY:-c:/Users/keda/.java-service-registry.yml}
+        target: /data/java-service-registry.yml
+        read_only: true
     environment:
       - TOOLS_DIR=/data/tools
+      # 服务管理远程模式：容器内无法操作宿主机进程，只做端口/URL 探测
+      - JSVC_REGISTRY_PATH=/data/java-service-registry.yml
+      - JSVC_HEALTH_HOST=host.docker.internal
     mem_limit: 128m
     memswap_limit: 128m
     restart: unless-stopped

@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const net = require('net');
 const { execFile, spawn } = require('child_process');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -10,6 +11,9 @@ const PUBLIC_DIR = path.resolve(__dirname, 'public');
 const REGISTRY_PATH = process.env.JSVC_REGISTRY_PATH
   ? path.resolve(process.env.JSVC_REGISTRY_PATH)
   : path.join(os.homedir(), '.java-service-registry.yml');
+// 远程模式（如 docker 部署）：注册表挂载进容器，但无法操作宿主机进程，
+// 判活/健康检查改走该主机名的 TCP/HTTP 探测，stop/start/delete 一律拒绝
+const HEALTH_HOST = process.env.JSVC_HEALTH_HOST || '';
 const JAVA_HOMES = {
   jdk8: 'C:\\develop\\jdk\\jdk1.8.0_281',
   jdk11: 'C:\\develop\\jdk\\jdk-11.0.9',
@@ -183,6 +187,26 @@ function pidAlive(pid) {
   }
 }
 
+function tcpAlive(port) {
+  return new Promise(resolve => {
+    const sock = net.connect({ host: HEALTH_HOST, port: Number(port), timeout: 1500 });
+    sock.on('connect', () => {
+      sock.destroy();
+      resolve(true);
+    });
+    sock.on('timeout', () => {
+      sock.destroy();
+      resolve(false);
+    });
+    sock.on('error', () => resolve(false));
+  });
+}
+
+function remoteUrl(url) {
+  if (!HEALTH_HOST || !url) return url;
+  return url.replace('//localhost:', '//' + HEALTH_HOST + ':').replace('//127.0.0.1:', '//' + HEALTH_HOST + ':');
+}
+
 function checkHealth(url) {
   return new Promise(resolve => {
     try {
@@ -224,8 +248,13 @@ async function handleListServices(res) {
   const services = reg.blocks.map(blockFields);
   await Promise.all(
     services.map(async s => {
-      s.alive = pidAlive(s.pid);
-      s.healthy = s.alive && s.url ? await checkHealth(s.url) : null;
+      if (HEALTH_HOST) {
+        s.alive = s.port ? await tcpAlive(s.port) : false;
+        s.remoteMode = true;
+      } else {
+        s.alive = pidAlive(s.pid);
+      }
+      s.healthy = s.alive && s.url ? await checkHealth(remoteUrl(s.url)) : null;
     })
   );
   sendJson(res, 200, { services, registryPath: REGISTRY_PATH });
@@ -243,6 +272,11 @@ async function handleServiceAction(res, raw) {
   const reg = readRegistry();
   const block = findBlock(reg.blocks, name);
   if (!block) return sendJson(res, 404, { error: '注册表中未找到服务: ' + name });
+  if (HEALTH_HOST) {
+    return sendJson(res, 400, {
+      error: '当前工具站为 docker/远程部署，无法操作宿主机进程；停止/启动/删除请在本机运行的工具站使用',
+    });
+  }
   const svc = blockFields(block);
 
   if (action === 'stop') {
