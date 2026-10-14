@@ -3,7 +3,7 @@ services:
     build: .
     image: my-tools:latest
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-18087}:3000"
     volumes:
       - type: bind
         source: ${TOOLS_DIR:-./tools}
