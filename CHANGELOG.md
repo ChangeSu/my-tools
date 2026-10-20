@@ -1,5 +1,14 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-MD-VIEWER-FOLDER-BROWSE -->
+### [2026-10-20] - MD 文档查看器支持按文件夹浏览
+- 新增"打开文件夹"（`<input webkitdirectory>`）与拖拽整个文件夹（`webkitGetAsEntry` 递归读取、`readEntries` 分批循环）；读取后在左侧 240px 目录侧栏按层级展示 `.md/.markdown/.txt`，目录可折叠，点击文件切换预览。
+- 每个文件的编辑内容按相对路径缓存在内存中，切换文件不丢失修改；当前文件以深色高亮，顶栏展示相对路径。
+- 相对路径图片支持：按当前文档所在目录解析 `![](...)`（含 `./`、`../`、URL 编码、大小写不敏感回退），文件夹内图片转 blob URL 惰性加载；找不到时保留原占位文本。切换文件夹时回收旧 blob URL。
+- 导出 HTML 时将 blob 图片转 data URL 内嵌，目录模式下导出文件名取 basename，避免相对路径进入下载文件名。
+- 自测：本地 `PORT=3199 node server.js`，浏览器合成 File/目录 Entry 实测——文件夹选择与拖拽目录均正确构建树（嵌套目录、中文名、折叠/展开）、点击切换与编辑缓存保留、相对图片 blob 加载成功（naturalWidth=1）、缺失图片占位、导出含 data URL 且无 blob URL、单文件拖拽与打开文件行为不回退、无控制台错误。内嵌浏览器无可见视口，截图不可用，改用计算样式断言（侧栏 240px、active 行 #222 底/白字）。
+- 已知限制：Markdown 内的相对 `.md` 链接不会在查看器内跳转；文件编辑缓存仅存于内存，刷新页面后丢失；目录读取范围受浏览器所选文件夹限制。
+
 <!-- CHANGELOG-ID: CHG-T09-MD-MERMAID-TOOLS -->
 ### [2026-10-14] - 新增 MD 文档查看器与 Mermaid 转图片工具
 - 新增 `tools/MD文档查看器.html`：Markdown 编辑/预览双栏，内置 markdown 渲染（标题/列表/表格/代码块/引用）、Mermaid 图表渲染（依赖同目录 `tools/mermaid.min.js` 本地库，零外网依赖）、暗色图表主题、编辑实时刷新。

@@ -26,7 +26,7 @@
   .empty-tip .drop { border: 2px dashed #e5e5e5; border-radius: 8px; padding: 48px 32px; margin: 0 auto; max-width: 480px; }
   .empty-tip b { color: #222222; }
 
-  body.dragging::after { content: "松开鼠标打开文件"; position: fixed; inset: 0; background: rgba(0,0,0,.35); color: #fff; font-size: 22px; display: flex; align-items: center; justify-content: center; z-index: 99; }
+  body.dragging::after { content: "松开鼠标打开文件或文件夹"; position: fixed; inset: 0; background: rgba(0,0,0,.35); color: #fff; font-size: 22px; display: flex; align-items: center; justify-content: center; z-index: 99; }
 
   #preview h1 { font-size: 24px; border-bottom: 2px solid #e5e5e5; padding-bottom: 10px; margin: 24px 0 16px; }
   #preview h2 { font-size: 20px; border-bottom: 1px solid #e5e5e5; padding-bottom: 8px; margin: 22px 0 14px; }
@@ -61,33 +61,60 @@
   .mmd-fs-close { position: fixed; top: 12px; right: 16px; z-index: 1001; font-size: 13px; padding: 6px 14px; border: 1px solid #e5e5e5; background: #ffffff; color: #222222; cursor: pointer; border-radius: 4px; }
   .mmd-fs-close:hover { background: #f5f5f5; }
   .mmd-fs-hint { position: fixed; bottom: 14px; left: 0; right: 0; text-align: center; color: #999999; font-size: 12px; pointer-events: none; }
+
+  .sidebar { width: 240px; flex-shrink: 0; background: #fbfbfc; border-right: 1px solid #e5e5e5; overflow: auto; padding: 14px 10px; }
+  .sidebar[hidden] { display: none; }
+  .sidebar-head { padding: 0 6px 10px; border-bottom: 1px solid #ececec; margin-bottom: 6px; }
+  .sidebar-head .folder-name { font-size: 13px; font-weight: bold; color: #222222; word-break: break-all; }
+  .sidebar-head .doc-count { font-size: 12px; color: #999999; margin-top: 3px; }
+  .tree-empty { color: #999999; font-size: 12px; padding: 8px 6px; line-height: 1.6; }
+  .tree ul { list-style: none; margin: 0; padding-left: 14px; }
+  .tree > ul { padding-left: 0; }
+  .tree li { margin: 0; }
+  .tree-row { display: flex; align-items: center; gap: 5px; padding: 5px 6px; border-radius: 4px; cursor: pointer; font-size: 13px; color: #333333; white-space: nowrap; overflow: hidden; }
+  .tree-row:hover { background: #f0f0f2; }
+  .tree-row .arrow { width: 10px; flex-shrink: 0; font-size: 10px; color: #999999; text-align: center; transition: transform .15s; }
+  .tree-row .label { overflow: hidden; text-overflow: ellipsis; }
+  .folder.collapsed > .tree-row .arrow { transform: rotate(-90deg); }
+  .folder.collapsed > ul { display: none; }
+  .file-row.active, .file-row.active:hover { background: #222222; color: #ffffff; }
 </style>
 </head>
 <body>
   <div class="topbar">
     <span class="title">MD 文档查看器</span>
     <span class="filename" id="filename">未打开文件</span>
-    <button class="btn" id="btnSplit">分屏: 开</button>    <button class="btn" id="btnExport">导出 HTML</button>
+    <button class="btn" id="btnSplit">分屏: 开</button>
+    <button class="btn" id="btnExport">导出 HTML</button>
     <select class="btn" id="themeSel" title="Mermaid 配色主题">
       <option value="default">浅色</option>
       <option value="dark">深色</option>
       <option value="neutral">中性</option>
       <option value="forest">森林</option>
     </select>
+    <button class="btn" id="btnOpenFolder">打开文件夹</button>
     <button class="btn btn-primary" id="btnOpen">打开 .md 文件</button>
     <input type="file" id="fileInput" accept=".md,.markdown,.txt" hidden>
+    <input type="file" id="folderInput" webkitdirectory multiple hidden>
   </div>
 
   <div class="main">
+    <aside class="sidebar" id="sidebar" hidden>
+      <div class="sidebar-head">
+        <div class="folder-name" id="folderName"></div>
+        <div class="doc-count" id="docCount"></div>
+      </div>
+      <div class="tree" id="tree"></div>
+    </aside>
     <div class="pane editor-pane" id="editorPane" style="display:none">
       <textarea id="editor" placeholder="# 在此输入或粘贴 Markdown 内容&#10;&#10;也可以点击右上角「打开 .md 文件」，或将文件拖拽到页面中" spellcheck="false"></textarea>
     </div>
     <div class="pane preview-pane" id="previewPane">
       <div class="empty-tip" id="emptyTip">
         <div class="drop">
-          <b>打开本地 Markdown 文件</b><br><br>
-          点击右上角按钮选择文件，或直接将 .md 文件拖入本页面。<br>
-          编辑区修改后预览实时刷新，无需联网。
+          <b>打开本地 Markdown 文件或文件夹</b><br><br>
+          点击右上角按钮选择文件/文件夹，或直接将文件、整个文件夹拖入本页面。<br>
+          打开文件夹后可在左侧目录切换文档，编辑区修改后预览实时刷新，无需联网。
         </div>
       </div>
       <div id="preview" hidden></div>
@@ -108,6 +135,19 @@
   var editorPane = document.getElementById('editorPane');
   var previewPane = document.getElementById('previewPane');
   var themeSel = document.getElementById('themeSel');
+  var sidebar = document.getElementById('sidebar');
+  var treeEl = document.getElementById('tree');
+  var folderNameEl = document.getElementById('folderName');
+  var docCountEl = document.getElementById('docCount');
+  var btnOpenFolder = document.getElementById('btnOpenFolder');
+  var folderInput = document.getElementById('folderInput');
+
+  var folderFiles = {};      // 相对路径 -> File
+  var folderPathsLower = {}; // 小写相对路径 -> 实际相对路径
+  var fileContent = {};      // 相对路径 -> 编辑后的内容
+  var imageUrls = {};        // 相对路径 -> blob URL
+  var blobPaths = {};        // blob URL -> 相对路径
+  var currentPath = '';
 
   var FONT_STACK = '"PingFang SC", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif';
   function applyMermaidTheme(name) {
@@ -147,8 +187,11 @@
     });
     s = esc(s);
     s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function (m, alt, src) {
-      if (!/^(https?:|data:)/i.test(src)) return '<i>[图片: ' + alt + ']</i>';
-      return '<img src="' + src + '" alt="' + alt + '">';
+      var raw = src.trim();
+      if (/^(https?:|data:)/i.test(raw)) return '<img src="' + raw + '" alt="' + alt + '">';
+      var local = resolveImageUrl(raw);
+      if (local) return '<img src="' + local + '" alt="' + alt + '">';
+      return '<i>[图片: ' + alt + ']</i>';
     });
     s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (m, txt, href) {
       if (!/^(https?:|mailto:|#)/i.test(href)) return txt;
@@ -428,8 +471,210 @@
     closeBtn.addEventListener('click', close);
   }
 
+  function normalizePath(p) {
+    var out = [];
+    p.split('/').forEach(function (seg) {
+      if (!seg || seg === '.') return;
+      if (seg === '..') { out.pop(); return; }
+      out.push(seg);
+    });
+    return out.join('/');
+  }
+
+  function isMarkdownPath(p) { return /\.(md|markdown|txt)$/i.test(p); }
+  function isImagePath(p) { return /\.(png|jpe?g|gif|svg|webp|bmp|ico|avif)$/i.test(p); }
+  function baseName(p) { var i = p.lastIndexOf('/'); return i < 0 ? p : p.slice(i + 1); }
+  function dirName(p) { var i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i); }
+
+  function resolveImageUrl(src) {
+    if (!currentPath) return null;
+    var clean = src.trim().replace(/^<|>$/g, '').split('#')[0].split('?')[0];
+    if (!clean || /^(https?:|data:|blob:)/i.test(clean)) return null;
+    try { clean = decodeURIComponent(clean); } catch (e) {}
+    var joined = clean.charAt(0) === '/' ? clean.slice(1) : dirName(currentPath) + '/' + clean;
+    var p = normalizePath(joined);
+    var actual = folderFiles[p] ? p : folderPathsLower[p.toLowerCase()];
+    if (!actual || !folderFiles[actual] || !isImagePath(actual)) return null;
+    if (!imageUrls[actual]) {
+      imageUrls[actual] = URL.createObjectURL(folderFiles[actual]);
+      blobPaths[imageUrls[actual]] = actual;
+    }
+    return imageUrls[actual];
+  }
+
+  function clearFolder() {
+    Object.keys(imageUrls).forEach(function (p) { URL.revokeObjectURL(imageUrls[p]); });
+    folderFiles = {};
+    folderPathsLower = {};
+    fileContent = {};
+    imageUrls = {};
+    blobPaths = {};
+    currentPath = '';
+    treeEl.innerHTML = '';
+  }
+
+  function markActive(path) {
+    var rows = treeEl.querySelectorAll('.file-row');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.toggle('active', !!path && rows[i].dataset.path === path);
+    }
+  }
+
+  function setFolder(entries) {
+    clearFolder();
+    var mdPaths = [];
+    entries.forEach(function (item) {
+      var p = normalizePath(item.path);
+      if (!p) return;
+      folderFiles[p] = item.file;
+      folderPathsLower[p.toLowerCase()] = p;
+      if (isMarkdownPath(p)) mdPaths.push(p);
+    });
+    mdPaths.sort(function (a, b) { return a.localeCompare(b, 'zh-CN'); });
+    var rootName = entries.length ? normalizePath(entries[0].path).split('/')[0] : '';
+    folderNameEl.textContent = rootName;
+    docCountEl.textContent = mdPaths.length + ' 个 Markdown 文件';
+    sidebar.hidden = false;
+    if (!mdPaths.length) {
+      treeEl.innerHTML = '<div class="tree-empty">该文件夹中没有 .md / .markdown / .txt 文件</div>';
+      editor.value = '';
+      filenameEl.textContent = '未打开文件';
+      filenameEl.title = '';
+      refresh();
+      return;
+    }
+    buildTree(mdPaths);
+    openPath(mdPaths[0]);
+  }
+
+  function buildTree(mdPaths) {
+    var root = { dirs: {}, files: [] };
+    mdPaths.forEach(function (p) {
+      var segs = p.split('/').slice(1);
+      if (!segs.length) segs = [p];
+      var node = root;
+      for (var i = 0; i < segs.length - 1; i++) {
+        if (!node.dirs[segs[i]]) node.dirs[segs[i]] = { dirs: {}, files: [] };
+        node = node.dirs[segs[i]];
+      }
+      node.files.push({ name: segs[segs.length - 1], path: p });
+    });
+    var ul = document.createElement('ul');
+    renderTree(root, ul);
+    treeEl.innerHTML = '';
+    treeEl.appendChild(ul);
+  }
+
+  function renderTree(node, ul) {
+    Object.keys(node.dirs).sort(function (a, b) { return a.localeCompare(b, 'zh-CN'); }).forEach(function (name) {
+      var li = document.createElement('li');
+      li.className = 'folder';
+      var row = document.createElement('div');
+      row.className = 'tree-row folder-row';
+      var arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      arrow.textContent = '\u25be';
+      var label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = name;
+      label.title = name;
+      row.appendChild(arrow);
+      row.appendChild(label);
+      row.addEventListener('click', function () { li.classList.toggle('collapsed'); });
+      var childUl = document.createElement('ul');
+      renderTree(node.dirs[name], childUl);
+      li.appendChild(row);
+      li.appendChild(childUl);
+      ul.appendChild(li);
+    });
+    node.files.forEach(function (f) {
+      var li = document.createElement('li');
+      var row = document.createElement('div');
+      row.className = 'tree-row file-row';
+      row.dataset.path = f.path;
+      row.title = f.path;
+      var arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      var label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = f.name;
+      row.appendChild(arrow);
+      row.appendChild(label);
+      row.addEventListener('click', function () { openPath(f.path); });
+      li.appendChild(row);
+      ul.appendChild(li);
+    });
+  }
+
+  function openPath(path) {
+    if (!folderFiles[path]) return;
+    if (currentPath) fileContent[currentPath] = editor.value;
+    currentPath = path;
+    markActive(path);
+    filenameEl.textContent = path.split('/').slice(1).join('/') || baseName(path);
+    filenameEl.title = path;
+    previewPane.scrollTop = 0;
+    editor.scrollTop = 0;
+    var show = function (text) {
+      if (currentPath !== path) return;
+      editor.value = text;
+      refresh();
+    };
+    if (fileContent[path] !== undefined) {
+      show(fileContent[path]);
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      fileContent[path] = reader.result;
+      show(reader.result);
+    };
+    reader.readAsText(folderFiles[path], 'UTF-8');
+  }
+
+  function readDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = function () { reject(reader.error); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function readEntry(entry, path, out) {
+    return new Promise(function (resolve) {
+      if (entry.isFile) {
+        entry.file(function (file) {
+          out.push({ path: path, file: file });
+          resolve();
+        }, function () { resolve(); });
+      } else if (entry.isDirectory) {
+        var reader = entry.createReader();
+        var children = [];
+        var readMore = function () {
+          reader.readEntries(function (batch) {
+            if (!batch.length) {
+              Promise.all(children.map(function (child) {
+                return readEntry(child, path + '/' + child.name, out);
+              })).then(resolve);
+              return;
+            }
+            children = children.concat(Array.prototype.slice.call(batch));
+            readMore();
+          }, function () { resolve(); });
+        };
+        readMore();
+      } else {
+        resolve();
+      }
+    });
+  }
+
   function openFile(file) {
     if (!file) return;
+    currentPath = '';
+    markActive('');
+    filenameEl.title = file.name;
     var reader = new FileReader();
     reader.onload = function () {
       editor.value = reader.result;
@@ -442,14 +687,46 @@
   btnOpen.addEventListener('click', function () { fileInput.click(); });
   fileInput.addEventListener('change', function () { openFile(fileInput.files[0]); fileInput.value = ''; });
 
-  editor.addEventListener('input', refresh);
+  btnOpenFolder.addEventListener('click', function () { folderInput.click(); });
+  folderInput.addEventListener('change', function () {
+    var list = folderInput.files;
+    if (list && list.length) {
+      var entries = [];
+      for (var i = 0; i < list.length; i++) {
+        entries.push({ path: list[i].webkitRelativePath || list[i].name, file: list[i] });
+      }
+      setFolder(entries);
+    }
+    folderInput.value = '';
+  });
+
+  editor.addEventListener('input', function () {
+    if (currentPath) fileContent[currentPath] = editor.value;
+    refresh();
+  });
 
   document.addEventListener('dragover', function (e) { e.preventDefault(); document.body.classList.add('dragging'); });
   document.addEventListener('dragleave', function (e) { if (e.target === document.documentElement) document.body.classList.remove('dragging'); });
   document.addEventListener('drop', function (e) {
     e.preventDefault();
     document.body.classList.remove('dragging');
-    var f = e.dataTransfer.files[0];
+    var dt = e.dataTransfer;
+    if (!dt) return;
+    var dirEntry = null;
+    if (dt.items && dt.items.length) {
+      for (var i = 0; i < dt.items.length; i++) {
+        var entry = dt.items[i].webkitGetAsEntry ? dt.items[i].webkitGetAsEntry() : null;
+        if (entry && entry.isDirectory) { dirEntry = entry; break; }
+      }
+    }
+    if (dirEntry) {
+      var out = [];
+      readEntry(dirEntry, dirEntry.name, out).then(function () {
+        if (out.length) setFolder(out);
+      });
+      return;
+    }
+    var f = dt.files && dt.files[0];
     if (f) openFile(f);
   });
 
@@ -459,22 +736,41 @@
     btnSplit.textContent = on ? '分屏: 关' : '分屏: 开';
   });
 
-  btnExport.addEventListener('click', function () {
+  function exportHtml() {
+    var html = preview.innerHTML;
+    var urls = [];
+    (html.match(/blob:[^"'\s]+/g) || []).forEach(function (u) {
+      if (urls.indexOf(u) < 0) urls.push(u);
+    });
+    var jobs = urls.map(function (url) {
+      var file = folderFiles[blobPaths[url]];
+      if (!file) return null;
+      return readDataUrl(file).then(function (dataUrl) {
+        html = html.split(url).join(dataUrl);
+      });
+    }).filter(function (job) { return !!job; });
+    Promise.all(jobs).then(function () { downloadHtml(html); }, function () { downloadHtml(html); });
+  }
+
+  function downloadHtml(html) {
+    var title = baseName(filenameEl.textContent);
     var doc = '<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>' +
-      esc(filenameEl.textContent) + '</title>\n<style>body{max-width:860px;margin:40px auto;padding:0 20px;line-height:1.75;font-size:14px;color:#222;font-family:"Microsoft YaHei",sans-serif}' +
+      esc(title) + '</title>\n<style>body{max-width:860px;margin:40px auto;padding:0 20px;line-height:1.75;font-size:14px;color:#222;font-family:"Microsoft YaHei",sans-serif}' +
       'h1{border-bottom:2px solid #e5e5e5;padding-bottom:10px}h2{border-bottom:1px solid #e5e5e5;padding-bottom:8px}' +
       'code{background:#f2f2f3;border:1px solid #e5e5e5;border-radius:3px;padding:1px 5px;font-family:Consolas,monospace;font-size:13px}' +
       'pre{background:#f8f8f8;border:1px solid #e5e5e5;border-radius:6px;padding:14px 16px;overflow:auto}' +
       'pre code{background:none;border:none;padding:0}blockquote{border-left:4px solid #ccc;background:#f8f8f8;padding:8px 16px;color:#666;margin:12px 0}' +
       'table{border-collapse:collapse;width:100%}th,td{border:1px solid #e5e5e5;padding:7px 12px;text-align:left}th{background:#f8f8f8}</style></head>\n<body>\n' +
-      preview.innerHTML + '\n</body></html>';
+      html + '\n</body></html>';
     var blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = (filenameEl.textContent.replace(/\.[^.]*$/, '') || 'document') + '.html';
+    a.download = (title.replace(/\.[^.]*$/, '') || 'document') + '.html';
     a.click();
     URL.revokeObjectURL(a.href);
-  });
+  }
+
+  btnExport.addEventListener('click', exportHtml);
 
   refresh();
 })();
