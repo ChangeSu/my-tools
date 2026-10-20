@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片 Base64 互转</title>
+  <style>
+    :root {
+      --bg: #f7f7f8;
+      --surface: #ffffff;
+      --text: #222222;
+      --text-2: #666666;
+      --text-3: #999999;
+      --border: #e5e5e5;
+      --row-hover: #f5f5f6;
+      --primary-bg: #222222;
+      --primary-text: #ffffff;
+      --danger: #c0392b;
+      --radius: 6px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+    .sub { color: var(--text-2); font-size: 13px; margin-bottom: 18px; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .panel-title::before {
+      content: "";
+      width: 3px;
+      height: 13px;
+      border-radius: 2px;
+      background: var(--primary-bg);
+    }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    button {
+      padding: 7px 16px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+    button:hover { background: var(--row-hover); }
+    button.primary { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-text); }
+    button.primary:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    textarea {
+      width: 100%;
+      height: 130px;
+      font-family: Consolas, Menlo, monospace;
+      font-size: 12px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      resize: vertical;
+      color: var(--text);
+      background: var(--surface);
+    }
+    textarea:focus { outline: none; border-color: var(--text-3); }
+    .muted { color: var(--text-3); font-size: 12px; }
+    .meta { color: var(--text-2); font-size: 12px; }
+    .drop {
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 26px 16px;
+      text-align: center;
+      color: var(--text-3);
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop:hover, .drop.over { border-color: var(--primary-bg); background: var(--row-hover); }
+    .preview {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-top: 12px;
+    }
+    .preview img {
+      max-width: 220px;
+      max-height: 160px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background:
+        conic-gradient(#f0f0f0 25%, #fff 0 50%, #f0f0f0 0 75%, #fff 0) 0 0/16px 16px;
+      object-fit: contain;
+    }
+    .msg { font-size: 12px; min-height: 18px; margin-top: 6px; }
+    .msg.error { color: var(--danger); }
+    .msg.ok { color: #1e7e34; }
+    label.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); cursor: pointer; }
+    input[type="checkbox"] { accent-color: var(--primary-bg); cursor: pointer; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>图片 Base64 互转</h1>
+  <p class="sub">图片与 Base64 编码互相转换，纯本地处理，文件不会上传。</p>
+
+  <!-- 图片 → Base64 -->
+  <div class="panel">
+    <div class="panel-title">图片 → Base64</div>
+    <div class="drop" id="drop">点击选择图片，或将图片拖拽 / 粘贴到此处</div>
+    <input type="file" id="file" accept="image/*" class="hidden">
+    <div class="row" style="margin-top: 12px;">
+      <label class="check"><input type="checkbox" id="noHeader">去掉 base64 头部（data:image/…;base64,）</label>
+      <button id="copy64" class="primary" disabled>复制 Base64</button>
+      <button id="downloadTxt" disabled>下载 Base64</button>
+      <button id="clearImg" disabled>清空</button>
+    </div>
+    <div class="preview hidden" id="imgPreviewWrap">
+      <img id="imgPreview" alt="预览" decoding="async">
+      <div class="meta" id="imgMeta"></div>
+    </div>
+    <div class="msg" id="msg1"></div>
+    <textarea id="b64out" placeholder="Base64 输出…" spellcheck="false"></textarea>
+  </div>
+
+  <!-- Base64 → 图片 -->
+  <div class="panel">
+    <div class="panel-title">Base64 → 图片</div>
+    <textarea id="b64in" placeholder="粘贴 Base64 字符串（可带 data:image/…;base64, 头部，会自动识别）…" spellcheck="false"></textarea>
+    <div class="row" style="margin-top: 12px;">
+      <button id="decodeBtn" class="primary">生成图片</button>
+      <button id="pasteBtn">从剪贴板粘贴</button>
+      <button id="downloadBtn" disabled>下载图片</button>
+      <button id="clearDecode">清空</button>
+    </div>
+    <div class="preview hidden" id="decPreviewWrap">
+      <img id="decPreview" alt="预览" decoding="async">
+      <div class="meta" id="decMeta"></div>
+    </div>
+    <div class="msg" id="msg2"></div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const drop = $('drop'), fileInput = $('file');
+    const b64out = $('b64out'), b64in = $('b64in');
+    const noHeader = $('noHeader');
+    const msg1 = $('msg1'), msg2 = $('msg2');
+    const PREFIX_RE = /^data:([^;,]+);base64,/i;
+    const DISPLAY_LIMIT = 200000; // 输出/输入 textarea 只显示这么多字符，避免大字符串卡渲染
+    const LS_KEY = 'imgB64NoHeader';
+
+    let currentDataUrl = null;      // 完整 data URL（图→b64）
+    let currentDecode = null;       // { mime, bytes }（b64→图）
+    let rawInputFull = null;        // 超大输入的完整内容（输入框仅截断显示）
+
+    function fmtSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    }
+
+    function setMsg(el, text, type) {
+      el.textContent = text || '';
+      el.className = 'msg' + (type ? ' ' + type : '');
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+
+    function outputText() {
+      if (!currentDataUrl) return '';
+      return noHeader.checked ? currentDataUrl.replace(PREFIX_RE, '') : currentDataUrl;
+    }
+
+    function displayText() {
+      const full = outputText();
+      if (full.length <= DISPLAY_LIMIT) return full;
+      return full.slice(0, DISPLAY_LIMIT) +
+        '\n\n……[已截断显示：完整内容共 ' + full.length.toLocaleString() +
+        ' 字符（约 ' + fmtSize(full.length) + '），请使用「复制 Base64」或「下载 Base64」获取完整内容]';
+    }
+
+    function refreshOutput() {
+      b64out.value = displayText();
+    }
+
+    function loadImageFile(f) {
+      setMsg(msg1, '');
+      if (!f || !f.type.startsWith('image/')) {
+        setMsg(msg1, '请选择图片文件（png / jpg / gif / webp / svg 等）', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        currentDataUrl = reader.result;
+        const pure = currentDataUrl.replace(PREFIX_RE, '');
+        $('imgPreview').src = currentDataUrl;
+        $('imgMeta').textContent =
+          (f.name || '图片') + '　' + (f.type || '未知类型') + '　' + fmtSize(f.size) +
+          '　Base64 长度: ' + pure.length.toLocaleString();
+        $('imgPreviewWrap').classList.remove('hidden');
+        $('copy64').disabled = false;
+        $('downloadTxt').disabled = false;
+        $('clearImg').disabled = false;
+        refreshOutput();
+      };
+      reader.onerror = () => setMsg(msg1, '文件读取失败', 'error');
+      reader.readAsDataURL(f);
+    }
+
+    drop.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) loadImageFile(fileInput.files[0]);
+    });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault();
+      drop.classList.remove('over');
+      if (e.dataTransfer.files.length) loadImageFile(e.dataTransfer.files[0]);
+    });
+    window.addEventListener('paste', e => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (const it of items) {
+        if (it.type.startsWith('image/')) {
+          loadImageFile(it.getAsFile());
+          return;
+        }
+      }
+    });
+
+    noHeader.checked = localStorage.getItem(LS_KEY) === '1';
+    noHeader.addEventListener('change', () => {
+      localStorage.setItem(LS_KEY, noHeader.checked ? '1' : '0');
+      refreshOutput();
+    });
+
+    $('copy64').addEventListener('click', async () => {
+      const text = outputText();
+      if (!text) return;
+      try {
+        await copyText(text);
+        setMsg(msg1, '已复制到剪贴板（' + text.length.toLocaleString() + ' 字符）', 'ok');
+      } catch (err) {
+        setMsg(msg1, '复制失败，请手动选择文本复制', 'error');
+      }
+    });
+
+    $('downloadTxt').addEventListener('click', () => {
+      const text = outputText();
+      if (!text) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+      a.download = 'base64.txt';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+
+    $('clearImg').addEventListener('click', () => {
+      currentDataUrl = null;
+      b64out.value = '';
+      fileInput.value = '';
+      $('imgPreviewWrap').classList.add('hidden');
+      $('imgPreview').src = '';
+      $('copy64').disabled = true;
+      $('downloadTxt').disabled = true;
+      $('clearImg').disabled = true;
+      setMsg(msg1, '');
+    });
+
+    function handlePastedText(text) {
+      if (text.length > DISPLAY_LIMIT) {
+        rawInputFull = text.trim().replace(/\s+/g, '');
+        b64in.value = text.slice(0, DISPLAY_LIMIT);
+        setMsg(msg2, '内容过大（共 ' + rawInputFull.length.toLocaleString() +
+          ' 字符），输入框仅显示前 ' + DISPLAY_LIMIT.toLocaleString() +
+          ' 字符，完整内容已保留，直接点击「生成图片」即可；如需修改请重新粘贴较小的内容');
+      } else {
+        rawInputFull = null;
+        b64in.value = text.trim();
+      }
+    }
+
+    // 优先使用内存中的完整内容（输入框可能已截断显示）
+    function decodeInput() {
+      return rawInputFull || b64in.value.trim().replace(/\s+/g, '');
+    }
+
+    function decodeBase64() {
+      setMsg(msg2, '');
+      let raw = decodeInput();
+      if (!raw) { setMsg(msg2, '请先粘贴 Base64 字符串', 'error'); return; }
+
+      let mime = 'image/png';
+      const m = raw.match(PREFIX_RE);
+      if (m) {
+        mime = m[1];
+        raw = raw.slice(m[0].length);
+      }
+
+      setMsg(msg2, '解码中…');
+      // 先让 UI 渲染提示，再执行大字符串解码，避免主线程冻结感
+      setTimeout(() => {
+        // fetch data: URL 由浏览器原生解码 base64，比 JS 循环快且不阻塞 UI
+        fetch('data:' + mime + ';base64,' + raw)
+          .then(r => {
+            if (!r.ok) throw new Error('bad data url');
+            return r.arrayBuffer();
+          })
+          .then(buf => {
+            const bytes = new Uint8Array(buf);
+            if (bytes.length === 0) throw new Error('empty');
+            currentDecode = { mime, bytes };
+            const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+            $('decPreview').src = url;
+            $('decMeta').textContent = mime + '　' + fmtSize(bytes.length);
+            $('decPreviewWrap').classList.remove('hidden');
+            $('downloadBtn').disabled = false;
+            setMsg(msg2, '解码成功', 'ok');
+          })
+          .catch(() => {
+            currentDecode = null;
+            $('decPreviewWrap').classList.add('hidden');
+            $('decPreview').src = '';
+            $('downloadBtn').disabled = true;
+            setMsg(msg2, 'Base64 无效或不是图片数据，无法解码', 'error');
+          });
+      }, 0);
+    }
+
+    $('decodeBtn').addEventListener('click', decodeBase64);
+
+    // 拦截超大文本粘贴：完整内容进内存，输入框截断显示
+    b64in.addEventListener('paste', e => {
+      const text = e.clipboardData && e.clipboardData.getData('text');
+      if (!text || text.length <= DISPLAY_LIMIT) {
+        rawInputFull = null;
+        return;
+      }
+      e.preventDefault();
+      handlePastedText(text);
+    });
+
+    // 用户手动编辑输入框后，截断显示的文本已不完整，丢弃内存中的完整内容
+    b64in.addEventListener('input', () => {
+      rawInputFull = null;
+      setMsg(msg2, '');
+    });
+
+    $('pasteBtn').addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          handlePastedText(text);
+          decodeBase64();
+        } else {
+          setMsg(msg2, '剪贴板中没有文本', 'error');
+        }
+      } catch (err) {
+        setMsg(msg2, '无法读取剪贴板，请手动粘贴（Ctrl+V）', 'error');
+      }
+    });
+
+    $('downloadBtn').addEventListener('click', () => {
+      if (!currentDecode) return;
+      const ext = (currentDecode.mime.split('/')[1] || 'png').split('+')[0].replace('jpeg', 'jpg');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([currentDecode.bytes], { type: currentDecode.mime }));
+      a.download = 'image.' + ext;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+
+    $('clearDecode').addEventListener('click', () => {
+      b64in.value = '';
+      rawInputFull = null;
+      currentDecode = null;
+      $('decPreviewWrap').classList.add('hidden');
+      $('decPreview').src = '';
+      $('downloadBtn').disabled = true;
+      setMsg(msg2, '');
+    });
+  </script>
+</body>
+</html>

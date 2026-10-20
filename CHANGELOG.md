@@ -1,5 +1,12 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-IMG-BASE64-TOOL -->
+### [2026-10-20] - 新增图片 Base64 互转工具
+- 新增单文件零依赖工具 `tools/格式转换/图片Base64互转.html`（导航自动收录为"格式转换"分类）：图片 → Base64 支持点击选择、拖拽、页面粘贴，可去掉 `data:image/…;base64,` 头部（选择持久化到 localStorage `imgB64NoHeader`）、复制、下载 `base64.txt`，并展示预览与文件体积/Base64 长度；Base64 → 图片支持自动识别 data URL 头部、从剪贴板粘贴、预览及按 MIME 下载。
+- 大字符串处理：textarea 展示上限 200000 字符，超出部分仅在内存保留（复制/解码仍使用完整内容）；解码通过 `fetch(data:...)` 交由浏览器原生处理，避免 JS 循环阻塞；非法 Base64 明确报错并禁用下载。全部处理在本地完成，无外链资源。
+- 自测：本地 `PORT=3199 node server.js` 浏览器实测——1×1 PNG 编码输出带 data URL 头、预览加载成功（naturalWidth=1）；去头开关生效且 localStorage 记录；纯 Base64 解码为 blob 预览、meta 显示 `image/png　70 B`、下载按钮启用；非法输入提示错误且下载禁用；`/api/tools` 已收录该工具；除非法输入测试触发的预期 data URL 请求失败外无控制台错误。
+- 已知限制：复制/读取剪贴板依赖浏览器权限与安全上下文（localhost/https）；手动编辑截断显示的输入框会丢弃内存中的完整内容；图片不做压缩或格式转换，输出为原始文件编码。
+
 <!-- CHANGELOG-ID: CHG-MD-VIEWER-FOLDER-BROWSE -->
 ### [2026-10-20] - MD 文档查看器支持按文件夹浏览
 - 新增"打开文件夹"（`<input webkitdirectory>`）与拖拽整个文件夹（`webkitGetAsEntry` 递归读取、`readEntries` 分批循环）；读取后在左侧 240px 目录侧栏按层级展示 `.md/.markdown/.txt`，目录可折叠，点击文件切换预览。
