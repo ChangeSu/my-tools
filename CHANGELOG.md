@@ -1,5 +1,19 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-API-DOC-VIEWER-CURL-FIX -->
+### [2026-10-26] - 修复 Swagger 可视化工具 multipart 接口报错 `media is not defined`
+- 修复 `buildCurl` 中 `media` 变量声明在 `if (content.length)` 块内、却在后续 `multipart/form-data` 分支引用的作用域错误：改为函数级 `bodyMedia`，含文件上传（multipart）的接口不再导致整份文档解析失败。
+- 自测：用 614KB、269 个接口、31 个分组的真实 Swagger 2.0 文档实测——解析 43ms，UI 导入约 0.5s；2 个 multipart 接口正常生成 `-F 'file=@<file>'` cURL；中文接口名路由（`#/ep/查询告警总数`）与搜索正常；导出 JSON/Markdown（877KB）/ZIP（270 项，UTF-8 文件名标志）均可生成，ZIP 经 `unzip -t` 校验；文档 JSON 可完整重导入（269 个接口 ID 一致）；localStorage 缓存约 1MB，未超上限；无控制台错误。
+- 已知限制：无新增。
+
+<!-- CHANGELOG-ID: CHG-API-DOC-VIEWER -->
+### [2026-10-23] - 新增 Swagger 可视化文档工具
+- 新增单文件零依赖工具 `tools/API文档/Swagger可视化.html`（导航自动收录为"API文档"分类）：粘贴/拖入 Swagger 2.0 或 OpenAPI 3.x JSON（≤20MB，纯本地解析），展开全部 `$ref`、合并 `allOf`、保留 `oneOf/anyOf`，循环引用自动截断并标注，外部引用给出提示；接口与参数、响应结构、示例、cURL 全部内联展示，无需跳转。
+- 导出能力：整份文档导出自定义 `my-tools.api-doc` JSON（可再导入还原）、完整单文件 Markdown（含目录/锚点/参数表/字段树/示例）、分接口 ZIP 包（README 索引 + 每接口一个 .md，自实现 store-only ZIP：CRC32 + central directory，UTF-8 文件名），单个接口可单独复制/下载 Markdown 或 JSON。
+- 界面：hash 路由（`#/overview`、`#/ep/<id>`、`#/import`）、localStorage 自动恢复上次文档（3.5M 字符上限）、侧栏搜索高亮与 `/` 快捷键、内容类型 Tab 切换（键盘可操作）、字段树折叠/全部展开、打印时自动展开全部折叠块、移动端抽屉导航与响应式布局（390px 无横向溢出）、全部文档内容经 HTML 转义防注入。
+- 自测：Node 直测解析/导出/roundtrip（own-format 重导入端点数一致）；`PORT=3199 node server.js` + Chrome headless CDP 实测——示例文档总览/接口页渲染、搜索匹配与无结果态、字段树收起/展开、5 种导出（文件名与内容正确）、`unzip -t` 校验 ZIP 无错误、Swagger 2.0 + 外部引用告警、oneOf 组合块、3 内容类型 Tab 切换、YAML 输入友好报错、刷新恢复、移动端抽屉与溢出检查，无控制台错误。
+- 已知限制：不支持 YAML 输入与外部 `$ref`（跳过并提示）；circular 引用仅展示引用名不展开；大文档（>3.5M 字符）不写 localStorage 缓存。
+
 <!-- CHANGELOG-ID: CHG-IMG-BASE64-TOOL -->
 ### [2026-10-20] - 新增图片 Base64 互转工具
 - 新增单文件零依赖工具 `tools/格式转换/图片Base64互转.html`（导航自动收录为"格式转换"分类）：图片 → Base64 支持点击选择、拖拽、页面粘贴，可去掉 `data:image/…;base64,` 头部（选择持久化到 localStorage `imgB64NoHeader`）、复制、下载 `base64.txt`，并展示预览与文件体积/Base64 长度；Base64 → 图片支持自动识别 data URL 头部、从剪贴板粘贴、预览及按 MIME 下载。
