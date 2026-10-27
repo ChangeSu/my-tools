@@ -1,5 +1,13 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-MD-VIEWER-PDF-EXPORT -->
+### [2026-10-27] - MD 文档查看器新增导出 PDF
+- 新增“导出 PDF”按钮：调用浏览器原生打印，在目标打印机中选择“另存为 PDF”即可，零新增依赖、离线可用；PDF 为矢量文字可选中，Mermaid 图表、内嵌图片、表格原样保留。打印前会等待尚未完成的 Mermaid 渲染，打印标题临时设为文档名（作为另存为 PDF 的默认文件名），`afterprint` 后自动恢复。
+- 新增 `@media print` 样式：隐藏顶栏/目录侧栏/编辑区/空提示/Mermaid 悬浮按钮/全屏遮罩；预览区去除卡片边框、max-width 与滚动限制；代码块自动换行避免超宽截断；标题避免与下文分离，表格行、引用、图片、图表避免跨页截断；Mermaid SVG 宽度自适应纸张；`@page` 页边距 14mm/12mm。
+- 顺带修复：`baseName` 在同一 IIFE 中被重复声明（后者覆盖前者），导致 Mermaid 图导出 SVG/PNG 时文件名为 `undefined-<时间戳>`；合并为单一实现（按路径取 basename、剥离扩展名、空值回退 `diagram`）。
+- 自测：`node docs/script/2026-10-27_01_md_pdf_smoke_test.mjs`（本地服务 + headless Chrome CDP）——打印媒体下顶栏/侧栏/编辑区/空提示/图表工具按钮均为 `display:none`、`#preview` 无边框无 max-width、body 恢复滚动；`pre` 为 `pre-wrap`、Mermaid SVG `max-width:100%`；`Page.printToPDF` 生成 60KB 有效 PDF（含中文/表格/代码/Mermaid）；点击按钮触发一次 `window.print`，标题临时变为“导出测试”并在 `afterprint` 后恢复；无未捕获异常。
+- 已知限制：受“离线零依赖”约束不引入 jsPDF/html2canvas，无法在页面内直接下载 `.pdf` 文件，需经浏览器打印对话框保存；页眉页脚取决于浏览器打印设置；仅导出预览内容。
+
 <!-- CHANGELOG-ID: CHG-API-DOC-VIEWER-CURL-FIX -->
 ### [2026-10-26] - 修复 Swagger 可视化工具 multipart 接口报错 `media is not defined`
 - 修复 `buildCurl` 中 `media` 变量声明在 `if (content.length)` 块内、却在后续 `multipart/form-data` 分支引用的作用域错误：改为函数级 `bodyMedia`，含文件上传（multipart）的接口不再导致整份文档解析失败。

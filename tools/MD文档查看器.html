@@ -78,6 +78,22 @@
   .folder.collapsed > .tree-row .arrow { transform: rotate(-90deg); }
   .folder.collapsed > ul { display: none; }
   .file-row.active, .file-row.active:hover { background: #222222; color: #ffffff; }
+
+  @media print {
+    html, body { height: auto; overflow: visible; background: #ffffff; }
+    body { display: block; }
+    .topbar, .sidebar, .editor-pane, #emptyTip, .mermaid-tools, .mmd-fs-mask { display: none !important; }
+    .main { display: block; overflow: visible; }
+    .pane { overflow: visible; padding: 0; }
+    .preview-pane { background: #ffffff; }
+    #preview { max-width: none; margin: 0; padding: 0; border: none; border-radius: 0; }
+    #preview h1, #preview h2, #preview h3, #preview h4, #preview h5, #preview h6 { break-after: avoid; }
+    #preview pre, #preview blockquote, #preview table, #preview tr, #preview img, .mermaid-block { break-inside: avoid; }
+    #preview pre { overflow: visible; white-space: pre-wrap; word-break: break-word; }
+    .mermaid-block { border: none; padding: 0; overflow: visible; }
+    .mermaid-block svg { max-width: 100% !important; height: auto; }
+    @page { margin: 14mm 12mm; }
+  }
 </style>
 </head>
 <body>
@@ -86,6 +102,7 @@
     <span class="filename" id="filename">未打开文件</span>
     <button class="btn" id="btnSplit">分屏: 开</button>
     <button class="btn" id="btnExport">导出 HTML</button>
+    <button class="btn" id="btnPdf" title="调用浏览器打印，在目标打印机中选择“另存为 PDF”">导出 PDF</button>
     <select class="btn" id="themeSel" title="Mermaid 配色主题">
       <option value="default">浅色</option>
       <option value="dark">深色</option>
@@ -131,6 +148,7 @@
   var fileInput = document.getElementById('fileInput');
   var btnOpen = document.getElementById('btnOpen');
   var btnExport = document.getElementById('btnExport');
+  var btnPdf = document.getElementById('btnPdf');
   var btnSplit = document.getElementById('btnSplit');
   var editorPane = document.getElementById('editorPane');
   var previewPane = document.getElementById('previewPane');
@@ -345,10 +363,6 @@
     return { xml: new XMLSerializer().serializeToString(clone), w: w, h: h };
   }
 
-  function baseName() {
-    return (filenameEl.textContent.replace(/\.[^.]*$/, '').replace('未打开文件', '') || 'diagram');
-  }
-
   function triggerDownload(href, name) {
     var a = document.createElement('a');
     a.href = href;
@@ -483,7 +497,12 @@
 
   function isMarkdownPath(p) { return /\.(md|markdown|txt)$/i.test(p); }
   function isImagePath(p) { return /\.(png|jpe?g|gif|svg|webp|bmp|ico|avif)$/i.test(p); }
-  function baseName(p) { var i = p.lastIndexOf('/'); return i < 0 ? p : p.slice(i + 1); }
+  function baseName(p) {
+    p = p || filenameEl.textContent || '';
+    var i = p.lastIndexOf('/');
+    if (i >= 0) p = p.slice(i + 1);
+    return p.replace(/\.[^.]*$/, '').replace('未打开文件', '').trim() || 'diagram';
+  }
   function dirName(p) { var i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i); }
 
   function resolveImageUrl(src) {
@@ -771,6 +790,21 @@
   }
 
   btnExport.addEventListener('click', exportHtml);
+
+  async function exportPdf() {
+    if (preview.hidden) return;
+    await renderMermaid();
+    var oldTitle = document.title;
+    document.title = baseName();
+    var restore = function () {
+      document.title = oldTitle;
+      window.removeEventListener('afterprint', restore);
+    };
+    window.addEventListener('afterprint', restore);
+    window.print();
+  }
+
+  btnPdf.addEventListener('click', exportPdf);
 
   refresh();
 })();
