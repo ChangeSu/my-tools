@@ -485,6 +485,17 @@
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
+  /** SVG 转 data URL：file:// 下 blob URL 会使 canvas 被污染，无法导出 PNG */
+  function svgToDataURL(svgStr){
+    const bytes = new TextEncoder().encode(svgStr);
+    const CHUNK = 0x8000;
+    let bin = '';
+    for(let i = 0; i < bytes.length; i += CHUNK){
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return 'data:image/svg+xml;base64,' + btoa(bin);
+  }
+
   /** 取出当前 SVG，计算真实宽高，返回一个「干净」的克隆节点 */
   function getCleanSvg(){
     const svg = previewEl.querySelector('svg');
@@ -531,14 +542,12 @@
 
     try{
       const svgStr = new XMLSerializer().serializeToString(clone);
-      const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
 
       const img = new Image();
       await new Promise((resolve, reject) => {
         img.onload  = resolve;
         img.onerror = () => reject(new Error('SVG 转图片失败'));
-        img.src = url;
+        img.src = svgToDataURL(svgStr);
       });
 
       const cw = Math.round(w * SCALE) + PAD * 2 * SCALE;
@@ -558,7 +567,6 @@
         PAD * SCALE, PAD * SCALE,
         Math.round(w * SCALE), Math.round(h * SCALE)
       );
-      URL.revokeObjectURL(url);
 
       const blob = await new Promise(res => canvas.toBlob(res, 'image/png', 1));
       if(!blob) throw new Error('生成 PNG 失败');

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+<!-- CHANGELOG-ID: CHG-MERMAID2PIC-PNG-TAINT-FIX -->
+### [2026-10-27] - 修复 Mermaid 转图片工具 PNG 导出 canvas 污染
+- 修复 `tools/格式转换/mermaid2pic.html` 导出 PNG 报 `Tainted canvases may not be exported`：原实现用 `URL.createObjectURL` 生成 blob URL 加载序列化后的 SVG，`file://` 打开时该 blob 属不透明来源，`drawImage` 后 canvas 被标记污染，`toBlob` 直接抛错。改为新增 `svgToDataURL()`（TextEncoder + 分块 base64，避免超长 SVG 编码栈溢出）将 SVG 转 data URL 后加载，并移除不再需要的 `revokeObjectURL`；「保存 SVG」逻辑不变。
+- 自测：headless Chrome 154 + CDP 实测——最小复现页验证 blob URL 必现污染报错、同份 SVG 用 data URL 可正常导出（14,770 字节 PNG）；真实工具页在 `file://` 与 `http://localhost:3000/tools/格式转换/mermaid2pic.html` 两种方式下点击「保存 PNG」均生成约 136KB PNG，无报错弹窗，按钮状态正常恢复。
+- 已知限制：若图表内含跨域且未开放 CORS 的外部图片（如 `A@{ img: ... }` 节点），加载 SVG 时仍会污染 canvas；本次未做外部资源内联。
+
 <!-- CHANGELOG-ID: CHG-MD-VIEWER-PDF-EXPORT -->
 ### [2026-10-27] - MD 文档查看器新增导出 PDF
 - 新增“导出 PDF”按钮：调用浏览器原生打印，在目标打印机中选择“另存为 PDF”即可，零新增依赖、离线可用；PDF 为矢量文字可选中，Mermaid 图表、内嵌图片、表格原样保留。打印前会等待尚未完成的 Mermaid 渲染，打印标题临时设为文档名（作为另存为 PDF 的默认文件名），`afterprint` 后自动恢复。
